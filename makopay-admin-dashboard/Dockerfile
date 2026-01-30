@@ -13,7 +13,7 @@ RUN npm install
 COPY . .
 
 # Build the app with API URL
-ARG VITE_API_URL
+ARG VITE_API_URL=https://api.makopay.live
 ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build
