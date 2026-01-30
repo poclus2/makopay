@@ -9,7 +9,7 @@ RUN npm ci
 COPY . .
 
 # Arguments for Vite build (injected by GitHub Actions)
-ARG VITE_API_URL
+ARG VITE_API_URL=https://api.makopay.live
 ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build
