@@ -156,7 +156,7 @@ const TransactionDetailScreen = ({ transaction, onBack }: TransactionDetailScree
                     className="w-full py-6 rounded-2xl text-lg font-bold bg-transparent border border-primary/30 text-white hover:bg-primary/10 mb-6"
                 >
                     <Share2 className="w-5 h-5 mr-2" />
-                    Partager le reçu
+                    Partager
                 </Button>
 
                 <div className="flex items-center justify-center gap-2 text-muted-foreground/50 text-xs">
