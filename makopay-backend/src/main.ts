@@ -1,3 +1,7 @@
+import { randomUUID } from 'crypto';
+// Make crypto globally available for @nestjs/schedule compatibility
+(global as any).crypto = { randomUUID };
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
