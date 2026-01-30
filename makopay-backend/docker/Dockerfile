@@ -26,6 +26,8 @@ RUN npm install --only=production
 
 COPY . .
 
+RUN npx prisma generate
+
 COPY --from=development /usr/src/app/dist ./dist
 
 CMD ["node", "dist/main"]
