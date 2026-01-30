@@ -26,7 +26,7 @@ const AVAILABLE_CURRENCIES: Currency[] = [
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [currency, setCurrencyState] = useState<CurrencyCode>('EUR');
+    const [currency, setCurrencyState] = useState<CurrencyCode>('XOF');
 
     useEffect(() => {
         const savedCurrency = localStorage.getItem('currency') as CurrencyCode;
