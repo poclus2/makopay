@@ -115,20 +115,14 @@ export default function UsersPage() {
                                         {format(new Date(user.createdAt), 'PPP')}
                                     </td>
                                     <td className="p-4 text-right">
-                                        {user.kycStatus === 'PENDING' ? (
-                                            <button
-                                                onClick={() => openKycModal(user)}
-                                                className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-md text-sm font-medium hover:bg-indigo-100 transition-colors"
-                                            >
-                                                Vérifier
-                                            </button>
-                                        ) : (
-                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.kycStatus === 'VERIFIED' ? 'bg-green-100 text-green-700' :
-                                                user.kycStatus === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'
-                                                }`}>
-                                                {user.kycStatus || 'Non soumis'}
-                                            </span>
-                                        )}
+                                        {/* KYC Modal temporarily disabled */}
+                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.kycStatus === 'VERIFIED' ? 'bg-green-100 text-green-700' :
+                                            user.kycStatus === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                                                user.kycStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                                                    'bg-slate-100 text-slate-500'
+                                            }`}>
+                                            {user.kycStatus || 'Non soumis'}
+                                        </span>
                                     </td>
                                 </tr>
                             ))}
