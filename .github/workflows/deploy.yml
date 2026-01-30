@@ -39,7 +39,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./makopay-finance-hub
-          file: ./makopay-finance-hub/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/makopay-frontend:latest
           build-args: |
