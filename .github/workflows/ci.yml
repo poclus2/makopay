@@ -26,7 +26,7 @@ jobs:
       # Backend Validation
       - name: Install Backend Dependencies
         working-directory: ./makopay-backend
-        run: npm ci
+        run: npm install
 
       - name: Build Backend
         working-directory: ./makopay-backend
@@ -35,7 +35,7 @@ jobs:
       # Frontend Validation (Finance Hub)
       - name: Install Frontend Dependencies
         working-directory: ./makopay-finance-hub
-        run: npm ci
+        run: npm install
 
       - name: Build Frontend
         working-directory: ./makopay-finance-hub
