@@ -375,35 +375,58 @@ export default function ProductsPage() {
 
                             <div className="col-span-2">
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Image du Produit</label>
-                                <div className="flex items-center gap-4">
-                                    {formData.imageUrl && (
-                                        <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200">
-                                            <img src={`${import.meta.env.VITE_API_URL}${formData.imageUrl}`} alt="Preview" className="w-full h-full object-cover" />
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData({ ...formData, imageUrl: '' })}
-                                                className="absolute top-0 right-0 p-1 bg-white/80 text-red-600 hover:bg-white rounded-bl-lg"
-                                            >
-                                                <X size={14} />
-                                            </button>
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-4">
+                                        {formData.imageUrl && (
+                                            <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 shrink-0">
+                                                <img
+                                                    src={formData.imageUrl.startsWith('http') ? formData.imageUrl : `${import.meta.env.VITE_API_URL}${formData.imageUrl}`}
+                                                    alt="Preview"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                                                    className="absolute top-0 right-0 p-1 bg-white/80 text-red-600 hover:bg-white rounded-bl-lg"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        )}
+                                        <div className="flex-1">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleImageUpload}
+                                                disabled={uploading}
+                                                className="block w-full text-sm text-slate-500
+                                                    file:mr-4 file:py-2 file:px-4
+                                                    file:rounded-full file:border-0
+                                                    file:text-sm file:font-semibold
+                                                    file:bg-indigo-50 file:text-indigo-700
+                                                    hover:file:bg-indigo-100
+                                                "
+                                            />
+                                            {uploading && <p className="text-xs text-indigo-600 mt-1">Téléchargement...</p>}
                                         </div>
-                                    )}
-                                    <div className="flex-1">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleImageUpload}
-                                            disabled={uploading}
-                                            className="block w-full text-sm text-slate-500
-                                                file:mr-4 file:py-2 file:px-4
-                                                file:rounded-full file:border-0
-                                                file:text-sm file:font-semibold
-                                                file:bg-indigo-50 file:text-indigo-700
-                                                hover:file:bg-indigo-100
-                                            "
-                                        />
-                                        {uploading && <p className="text-xs text-indigo-600 mt-1">Téléchargement...</p>}
                                     </div>
+
+                                    <div className="relative">
+                                        <div className="absolute inset-0 flex items-center">
+                                            <span className="w-full border-t border-slate-200" />
+                                        </div>
+                                        <div className="relative flex justify-center text-xs uppercase">
+                                            <span className="bg-white px-2 text-slate-500">Ou lien direct</span>
+                                        </div>
+                                    </div>
+
+                                    <input
+                                        type="url"
+                                        placeholder="https://exemple.com/image.jpg"
+                                        value={formData.imageUrl}
+                                        onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
+                                    />
                                 </div>
                             </div>
 
