@@ -1,0 +1,42 @@
+name: CI - Build & Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: './makopay-backend/package-lock.json'
+
+      # Backend Validation
+      - name: Install Backend Dependencies
+        working-directory: ./makopay-backend
+        run: npm ci
+
+      - name: Build Backend
+        working-directory: ./makopay-backend
+        run: npm run build
+
+      # Frontend Validation (Finance Hub)
+      - name: Install Frontend Dependencies
+        working-directory: ./makopay-finance-hub
+        run: npm ci
+
+      - name: Build Frontend
+        working-directory: ./makopay-finance-hub
+        run: npm run build

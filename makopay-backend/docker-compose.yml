@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: makopay_postgres
+    environment:
+      POSTGRES_USER: makopay
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: makopay_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - makopay_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: makopay_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - makopay_net
+
+  minio:
+    image: minio/minio
+    container_name: makopay_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio_user
+      MINIO_ROOT_PASSWORD: minio_password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - makopay_net
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+
+networks:
+  makopay_net:
+    driver: bridge

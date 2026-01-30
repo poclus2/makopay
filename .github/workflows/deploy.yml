@@ -1,0 +1,75 @@
+name: CD - Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build & Push Backend
+      - name: Build and push Backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./makopay-backend
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/makopay-backend:latest
+
+      # Build & Push Frontend (Nginx serve)
+      - name: Build and push Frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./makopay-finance-hub
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/makopay-frontend:latest
+          build-args: |
+            VITE_API_URL=${{ secrets.VITE_API_URL }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Digital Ocean via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          password: ${{ secrets.DO_PASSWORD }}
+          script: |
+            # Aller dans le dossier app
+            cd /root/app
+            
+            # Login au registry avec le token passager
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull des nouvelles images
+            # Note: Assurez-vous que docker-compose.prod.yml utilise l'image ghcr.io/...
+            docker compose -f docker-compose.prod.yml pull
+            
+            # Redémarrer les services
+            docker compose -f docker-compose.prod.yml up -d
+            
+            # Migrations de base de données (Safety check)
+            docker compose -f docker-compose.prod.yml exec backend npx prisma migrate deploy
+            
+            # Nettoyage
+            docker image prune -f

@@ -1,0 +1,50 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs
+*.log
+
+# Build outputs
+dist
+build
+out
+.next
+.nuxt
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Testing
+coverage
+
+# MakoPay Specific
+makopay-backend/dist
+makopay-backend/node_modules
+makopay-finance-hub/dist
+makopay-finance-hub/node_modules
+makopay-admin-dashboard/dist
+makopay-admin-dashboard/node_modules

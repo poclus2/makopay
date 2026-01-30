@@ -1,0 +1,411 @@
+project:
+  name: "Physical Products + Investment + MLM Platform"
+  version: "1.0.0"
+  description: >
+    Monolithic modular platform for selling physical products,
+    activating investment plans based on product purchases,
+    and distributing multi-level marketing (MLM) commissions
+    based exclusively on product sales. Supports fiat payments,
+    internal wallet, periodic investment payouts, and full admin control.
+
+business_model:
+  core_rules:
+    - "Investment gains are generated from product-linked investment plans"
+    - "MLM commissions are generated only from paid product orders"
+    - "No commissions are generated from deposits or user registrations"
+    - "All financial flows must be auditable via wallet ledger"
+  value_flow:
+    - step: "User purchases physical product"
+    - step: "Payment is validated by provider"
+    - step: "Order status changes to PAID"
+    - step: "Investment is created and scheduled"
+    - step: "MLM commissions are calculated for sponsors"
+    - step: "Wallet balances are credited"
+    - step: "Notifications are sent"
+
+architecture:
+  style: "modular_monolith"
+  frontend:
+    source: "Lovable template export"
+    integration: "Antigravity injects API_URL and secrets"
+  backend:
+    framework: "NestJS (TypeScript)"
+    api_style: "REST"
+    documentation: "/docs (OpenAPI)"
+  diagram: |
+    Frontend (Lovable Export)
+            |
+         API REST
+            |
+    ---------------------------------------------
+    | Auth | Users | Products | Orders | Payments |
+    | Investments | MLM | Wallet | Admin | Audit  |
+    ---------------------------------------------
+    | PostgreSQL | Redis | BullMQ              |
+    ---------------------------------------------
+    | Stripe / Mangopay (Fiat Payments)       |
+    ---------------------------------------------
+    | MinIO / S3 (Docs & Contracts)          |
+    ---------------------------------------------
+
+stack:
+  backend:
+    - NestJS
+    - TypeScript
+    - Prisma ORM
+    - PostgreSQL
+    - Redis
+    - BullMQ
+    - OpenAPI / Swagger
+  payments:
+    - Mangopay
+    - Stripe
+  storage:
+    - MinIO
+    - S3-compatible
+  infra:
+    - Docker
+    - Nginx
+    - Antigravity CI/CD
+
+modules:
+  auth:
+    responsibilities:
+      - user_registration
+      - user_login
+      - jwt_access_tokens
+      - refresh_tokens
+      - role_management
+    endpoints:
+      - POST /auth/register
+      - POST /auth/login
+      - POST /auth/refresh
+      - GET /auth/me
+
+  users:
+    responsibilities:
+      - user_profiles
+      - sponsor_assignment
+      - kyc_status_tracking
+      - activity_history
+    fields:
+      - id
+      - email
+      - password_hash
+      - sponsor_id
+      - kyc_status
+      - role
+      - created_at
+
+  products:
+    responsibilities:
+      - product_catalog
+      - stock_management
+      - investment_plan_linking
+      - commission_flagging
+    fields:
+      - id
+      - name
+      - sku
+      - price
+      - stock
+      - investment_plan_id
+      - commissionable
+    endpoints:
+      - GET /products
+      - GET /products/:id
+      - POST /admin/products
+
+  orders:
+    responsibilities:
+      - cart_management
+      - order_creation
+      - order_status_tracking
+      - invoice_generation
+    statuses:
+      - PENDING
+      - PAID
+      - SHIPPED
+      - CANCELLED
+    endpoints:
+      - POST /orders
+      - GET /orders/me
+      - GET /admin/orders
+
+  payments:
+    responsibilities:
+      - payment_session_creation
+      - webhook_validation
+      - order_payment_confirmation
+      - withdrawal_processing
+    providers:
+      - Mangopay
+      - Stripe
+    webhooks:
+      - /payments/webhook
+
+  investments:
+    description: "Product-linked investment engine generating periodic payouts"
+    responsibilities:
+      - create_investment_on_paid_order
+      - schedule_payouts
+      - calculate_yields
+      - credit_wallet
+      - close_investment_on_end_date
+    statuses:
+      - ACTIVE
+      - COMPLETED
+      - CANCELLED
+      - SUSPENDED
+    endpoints:
+      - GET /investments
+      - GET /investments/:id
+      - GET /investments/payouts
+
+  mlm:
+    description: "Multi-level marketing engine based on product sales commissions"
+    responsibilities:
+      - sponsor_tree_management
+      - sales_volume_tracking
+      - commission_calculation
+      - rank_qualification
+      - commission_history
+    rules:
+      - "Commissions are calculated only on PAID orders"
+      - "Max depth is configurable"
+      - "Percentage per level is configurable"
+    endpoints:
+      - GET /mlm/overview
+      - GET /mlm/tree
+      - GET /mlm/commissions
+
+  wallet:
+    responsibilities:
+      - balance_management
+      - ledger_tracking
+      - credit_operations
+      - debit_operations
+      - withdrawal_requests
+    transaction_types:
+      - INVESTMENT_PAYOUT
+      - MLM_COMMISSION
+      - WITHDRAWAL
+      - ADJUSTMENT
+
+  admin:
+    responsibilities:
+      - user_management
+      - product_management
+      - investment_plan_management
+      - mlm_configuration
+      - order_monitoring
+      - wallet_monitoring
+      - audit_log_access
+    endpoints:
+      - GET /admin/users
+      - GET /admin/transactions
+      - POST /admin/mlm-config
+      - POST /admin/investment-plans
+
+data_models:
+  users:
+    fields:
+      id: uuid
+      email: string
+      password_hash: string
+      sponsor_id: uuid
+      kyc_status: enum(PENDING, VERIFIED, REJECTED)
+      role: enum(USER, ADMIN, SUPPORT)
+      created_at: datetime
+
+  products:
+    fields:
+      id: uuid
+      name: string
+      sku: string
+      price: decimal
+      stock: integer
+      investment_plan_id: uuid
+      commissionable: boolean
+
+  orders:
+    fields:
+      id: uuid
+      user_id: uuid
+      total_amount: decimal
+      status: enum(PENDING, PAID, SHIPPED, CANCELLED)
+      created_at: datetime
+
+  order_items:
+    fields:
+      order_id: uuid
+      product_id: uuid
+      quantity: integer
+      unit_price: decimal
+
+  investment_plans:
+    fields:
+      id: uuid
+      name: string
+      duration_days: integer
+      yield_percent: decimal
+      payout_frequency: enum(DAILY, WEEKLY, MONTHLY)
+      min_amount: decimal
+      max_amount: decimal
+
+  investments:
+    fields:
+      id: uuid
+      user_id: uuid
+      order_id: uuid
+      plan_id: uuid
+      principal_amount: decimal
+      start_date: datetime
+      end_date: datetime
+      status: enum(ACTIVE, COMPLETED, CANCELLED, SUSPENDED)
+      last_payout_at: datetime
+
+  investment_payouts:
+    fields:
+      id: uuid
+      investment_id: uuid
+      amount: decimal
+      payout_date: datetime
+
+  mlm_tree:
+    fields:
+      user_id: uuid
+      sponsor_id: uuid
+
+  mlm_commissions:
+    fields:
+      id: uuid
+      earner_id: uuid
+      buyer_id: uuid
+      order_id: uuid
+      level: integer
+      amount: decimal
+      created_at: datetime
+
+  wallet:
+    fields:
+      user_id: uuid
+      balance: decimal
+      currency: string
+
+  wallet_ledger:
+    fields:
+      id: uuid
+      wallet_id: uuid
+      type: enum(INVESTMENT_PAYOUT, MLM_COMMISSION, WITHDRAWAL, ADJUSTMENT)
+      amount: decimal
+      reference: string
+      created_at: datetime
+
+mlm_configuration:
+  max_levels: 3
+  levels:
+    - level: 1
+      percent: 5
+    - level: 2
+      percent: 3
+    - level: 3
+      percent: 1
+  qualification_rules:
+    min_personal_sales: 0
+    min_network_sales: 0
+
+investment_configuration:
+  payout_cron: "0 0 * * *"
+  max_active_investments_per_user: 10
+  global_yield_cap_percent: 100
+
+jobs:
+  workers:
+    - name: "mlm_commission_processor"
+      trigger: "ORDER_PAID"
+      description: "Calculates MLM commissions and credits sponsor wallets"
+    - name: "investment_payout_processor"
+      trigger: "CRON"
+      description: "Processes scheduled investment payouts"
+    - name: "email_notifier"
+      trigger: "EVENT"
+      description: "Sends transactional emails"
+    - name: "invoice_generator"
+      trigger: "ORDER_PAID"
+      description: "Generates PDF invoices"
+
+security:
+  authentication:
+    jwt: true
+    refresh_tokens: true
+  password_hashing: "argon2"
+  rate_limiting: "redis"
+  webhooks:
+    validation: "HMAC signature"
+  admin_access:
+    ip_whitelist: true
+  kyc_required_for_withdrawals: true
+  document_encryption: true
+
+environment_variables:
+  - DATABASE_URL
+  - REDIS_URL
+  - JWT_SECRET
+  - PAYMENT_PROVIDER_KEY
+  - S3_ENDPOINT
+  - S3_ACCESS_KEY
+  - S3_SECRET_KEY
+  - FRONTEND_URL
+
+performance_targets:
+  active_users_per_day: 1000
+  api_latency_ms: 500
+  async_processing: true
+  caching: "redis"
+
+deployment:
+  containers:
+    - api
+    - postgres
+    - redis
+    - minio
+    - nginx
+  environments:
+    - staging
+    - production
+  pipelines:
+    - build_backend
+    - run_migrations
+    - build_frontend
+    - deploy_staging
+    - deploy_production
+
+frontend_pages:
+  user:
+    - login
+    - register
+    - product_catalog
+    - cart
+    - checkout
+    - investments_dashboard
+    - mlm_dashboard
+    - wallet
+    - profile
+  admin:
+    - users_management
+    - products_management
+    - investment_plans
+    - orders
+    - commissions
+    - logs
+    - system_settings
+
+expected_outcome:
+  - "Physical products can be sold and paid in fiat"
+  - "Investment plans are automatically activated by purchases"
+  - "Periodic investment payouts are credited to user wallets"
+  - "MLM commissions are distributed to sponsors"
+  - "Wallet supports withdrawals to IBAN"
+  - "Admin panel provides full system control"
+  - "Frontend is integrated via Antigravity"
