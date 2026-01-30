@@ -40,12 +40,11 @@ import { PaymentEnvironmentGuard } from './core/guards/payment-environment.guard
     OrdersModule,
     InvestmentsModule,
     MlmModule,
-    MlmModule,
     WalletModule,
     AdminModule,
     NotificationsModule,
-    NotificationsModule,
     SupportModule,
+    SettingsModule,
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
