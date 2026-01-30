@@ -1,0 +1,86 @@
+services:
+  # --- BASE DE DONNÉES ---
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: makopay
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: makopay_prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - makopay-network
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    volumes:
+      - redis_data:/data
+    networks:
+      - makopay-network
+
+  # --- BACKEND ---
+  backend:
+    image: ghcr.io/poclus2/makopay/makopay-backend:latest
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: "postgresql://makopay:Vykuj35461%40@postgres:5432/makopay_prod?schema=public"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: "${JWT_SECRET}"
+      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET}"
+      RESEND_API_KEY: "${RESEND_API_KEY}"
+      INFOBIP_API_KEY: "${INFOBIP_API_KEY}"
+      INFOBIP_BASE_URL: "${INFOBIP_BASE_URL}"
+      INFOBIP_SENDER_ID: "${INFOBIP_SENDER_ID}"
+      FRONTEND_URL: "https://makopay.live"
+      API_URL: "https://api.makopay.live"
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - makopay-network
+
+  # --- FRONTEND (User App) ---
+  frontend:
+    image: ghcr.io/poclus2/makopay/makopay-frontend:latest
+    restart: always
+    networks:
+      - makopay-network
+
+  # --- ADMIN DASHBOARD ---
+  admin:
+    image: ghcr.io/poclus2/makopay/makopay-admin:latest
+    restart: always
+    networks:
+      - makopay-network
+
+  # --- NGINX (Reverse Proxy) ---
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - backend
+      - frontend
+      - admin
+    networks:
+      - makopay-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+
+networks:
+  makopay-network:
+    driver: bridge

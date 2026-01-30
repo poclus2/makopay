@@ -44,6 +44,16 @@ jobs:
           build-args: |
             VITE_API_URL=${{ secrets.VITE_API_URL }}
 
+      # Build & Push Admin Dashboard
+      - name: Build and push Admin Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./makopay-admin-dashboard
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/makopay-admin:latest
+          build-args: |
+            VITE_API_URL=${{ secrets.VITE_API_URL }}
+
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
