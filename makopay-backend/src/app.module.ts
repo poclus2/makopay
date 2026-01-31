@@ -18,6 +18,7 @@ import { SupportModule } from './modules/support/support.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { PaymentEnvironmentGuard } from './core/guards/payment-environment.guard';
+import { SettingsModule } from './modules/settings/settings.module';
 
 @Module({
   imports: [
