@@ -269,7 +269,6 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
                   : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
                   }`}
               >
-                {/* Use manual format to avoid rounding/conversion issues for presets if they are intentionally round in XOF */}
                 {new Intl.NumberFormat('fr-FR').format(quickAmount)} {currency === 'XOF' ? 'F' : currency}
               </button>
             ))}
@@ -277,194 +276,158 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
         </GlassCard>
       </div>
 
-      {/* Payment Method Selection */}
+      {/* Payment Method Selection - ONLY MOBILE */}
       <div className="mb-6">
-        <h3 className="text-headline text-foreground mb-3">{t('addFunds.paymentMethod')}</h3>
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <button
-            onClick={() => setSelectedMethod('mobile')}
-            className={`p-4 rounded-2xl border text-left transition-all ${selectedMethod === 'mobile'
-              ? 'bg-primary/20 border-primary shadow-glow'
-              : 'bg-card/30 border-border/20'}`}
-          >
-            <Smartphone className={`w-6 h-6 mb-2 ${selectedMethod === 'mobile' ? 'text-primary' : 'text-muted-foreground'}`} />
-            <p className="font-bold text-sm">Mobile Money</p>
-          </button>
-          {/* <button
-            onClick={() => setSelectedMethod('bank')}
-            className={`p-4 rounded-2xl border text-left transition-all ${selectedMethod === 'bank'
-              ? 'bg-primary/20 border-primary shadow-glow'
-              : 'bg-card/30 border-border/20'}`}
-          >
-            <Building2 className={`w-6 h-6 mb-2 ${selectedMethod === 'bank' ? 'text-primary' : 'text-muted-foreground'}`} />
-            <p className="font-bold text-sm">Virement</p>
-          </button>
+        <h3 className="text-headline text-foreground mb-3">{t('withdraw.paymentMethod') || "Méthode de retrait"}</h3>
+        <div className="py-3 px-4 bg-card rounded-xl border border-primary/20 text-primary font-medium flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Smartphone className="w-5 h-5" />
+            <span>Mobile Money</span>
+          </div>
+          <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
         </div>
 
         <GlassCard className="space-y-4">
-          {selectedMethod === 'mobile' ? (
-            <>
-              <label className="text-caption text-muted-foreground">Opérateur</label>
-              <div className="grid grid-cols-2 gap-3 mb-2">
-                {mobileOperators.map(op => (
-                  <button
-                    key={op.id}
-                    onClick={() => setSelectedOperator(op.id)}
-                    className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${selectedOperator === op.id
-                      ? 'bg-card/50 border-primary'
-                      : 'bg-transparent border-border/20 hover:bg-card/30'}`}
-                  >
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center opacity-80" style={{ backgroundColor: op.color }}>
-                      <Smartphone className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-xs font-bold">{op.name}</span>
-                  </button>
-                ))}
-              </div>
+          <label className="text-caption text-muted-foreground">Opérateur</label>
+          <div className="grid grid-cols-2 gap-3 mb-2">
+            {mobileOperators.map((op: any) => (
+              <button
+                key={op.id}
+                onClick={() => setSelectedOperator(op.id)}
+                className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${selectedOperator === op.id
+                  ? 'bg-card/50 border-primary'
+                  : 'bg-transparent border-border/20 hover:bg-card/30'}`}
+              >
+                <div className="w-8 h-8 rounded-full flex items-center justify-center opacity-80" style={{ backgroundColor: op.color }}>
+                  <Smartphone className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xs font-bold">{op.name}</span>
+              </button>
+            ))}
+          </div>
 
-              <label className="text-caption text-muted-foreground">Numéro de téléphone</label>
-              <div className="relative">
-                <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="699000000"
-                  className="w-full pl-12 pr-4 py-3 rounded-xl bg-muted/30 border border-border/20 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors"
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <label className="text-caption text-muted-foreground">IBAN</label>
-              <div className="relative">
-                <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={iban}
-                  onChange={(e) => setIban(e.target.value.toUpperCase())}
-                  placeholder={t('withdraw.ibanPlaceholder')}
-                  className="w-full pl-12 pr-4 py-3 rounded-xl bg-muted/30 border border-border/20 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors font-mono"
-                />
-              </div>
-            </>
-          )}
+          <label className="text-caption text-muted-foreground">Numéro de téléphone</label>
+          <div className="relative">
+            <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <input
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="699000000"
+              className="w-full pl-12 pr-4 py-3 rounded-xl bg-muted/30 border border-border/20 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors"
+            />
+          </div>
         </GlassCard>
       </div>
 
       {/* Fee Preview */}
-          <GlassCard className="mb-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-body text-muted-foreground">{t('withdraw.amount')}</span>
-              <span className="text-body text-foreground tabular-nums">{formatCurrency(amount / rate)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-body text-muted-foreground">{t('withdraw.fee')} (1.5%)</span>
-              <span className="text-body text-destructive tabular-nums">-{formatCurrency(fee / rate)}</span>
-            </div>
-            <div className="border-t border-border/30 pt-3">
-              <div className="flex items-center justify-between">
-                <span className="text-headline text-foreground">{t('withdraw.youWillReceive')}</span>
-                <span className="text-headline text-primary font-bold tabular-nums">{formatCurrency((amount - fee) / rate)}</span>
-              </div>
-            </div>
-          </GlassCard>
-
-          {/* Warning */}
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-warning/10 border border-warning/20 mb-6">
-            <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-            <p className="text-caption text-warning">
-              {t('withdraw.warning')}
-            </p>
+      <GlassCard className="mb-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-body text-muted-foreground">{t('withdraw.amount')}</span>
+          <span className="text-body text-foreground tabular-nums">{formatCurrency(amount / rate)}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-body text-muted-foreground">{t('withdraw.fee')} ({withdrawalFeePercent}%)</span>
+          <span className="text-body text-destructive tabular-nums">-{formatCurrency(fee / rate)}</span>
+        </div>
+        <div className="border-t border-border/30 pt-3">
+          <div className="flex items-center justify-between">
+            <span className="text-headline text-foreground">{t('withdraw.youWillReceive')}</span>
+            <span className="text-headline text-primary font-bold tabular-nums">{formatCurrency((amount - fee) / rate)}</span>
           </div>
+        </div>
+      </GlassCard>
 
-          {/* Confirm Button */}
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleConfirmWithdraw}
-            disabled={
-              (selectedMethod === 'mobile' && (!phoneNumber || !selectedOperator)) ||
-              (selectedMethod === 'bank' && !iban) ||
-              amount < minWithdraw || amount > maxWithdraw
-            }
-            className="w-full btn-primary flex items-center justify-center gap-2 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
+      {/* Warning */}
+      <div className="flex items-start gap-3 p-4 rounded-xl bg-warning/10 border border-warning/20 mb-6">
+        <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+        <p className="text-caption text-warning">{t('withdraw.warning')}</p>
+      </div>
+
+      {/* Confirm Button */}
+      <motion.button
+        whileTap={{ scale: 0.98 }}
+        onClick={handleConfirmWithdraw}
+        disabled={
+          !phoneNumber || !selectedOperator || amount < minWithdraw || amount > maxWithdraw
+        }
+        className="w-full btn-primary flex items-center justify-center gap-2 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <Lock className="w-4 h-4" />
+        {t('withdraw.confirm')}
+      </motion.button>
+
+      {/* OTP Modal */}
+      <AnimatePresence>
+        {showOtp && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-background/80 backdrop-blur-sm p-4"
           >
-            <Lock className="w-4 h-4" />
-            {t('withdraw.confirm')}
-          </motion.button>
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="w-full max-w-md"
+            >
+              <GlassCard variant="solid" className="rounded-t-[28px]">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-headline text-foreground">{t('withdraw.verifyOtp')}</h2>
+                  <button
+                    onClick={() => setShowOtp(false)}
+                    className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center"
+                  >
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
 
-          {/* OTP Modal */}
-          <AnimatePresence>
-            {showOtp && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-end justify-center bg-background/80 backdrop-blur-sm p-4"
-              >
-                <motion.div
-                  initial={{ y: 100, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: 100, opacity: 0 }}
-                  className="w-full max-w-md"
+                <p className="text-caption text-muted-foreground mb-6 text-center">
+                  {t('withdraw.enterOtp')}
+                </p>
+
+                <div className="flex gap-2 justify-center mb-6">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      id={`otp-${index}`}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      className="w-12 h-14 rounded-xl bg-muted/30 border border-border/30 text-center text-title text-foreground font-bold focus:outline-none focus:border-primary transition-colors"
+                    />
+                  ))}
+                </div>
+
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleVerifyOtp}
+                  disabled={isProcessing || otp.some(d => !d)}
+                  className="w-full btn-primary flex items-center justify-center gap-2 py-4 disabled:opacity-50"
                 >
-                  <GlassCard variant="solid" className="rounded-t-[28px]">
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-headline text-foreground">{t('withdraw.verifyOtp')}</h2>
-                      <button
-                        onClick={() => setShowOtp(false)}
-                        className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center"
-                      >
-                        <X className="w-4 h-4 text-muted-foreground" />
-                      </button>
-                    </div>
+                  {isProcessing ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      {t('withdraw.verifyAndWithdraw')}
+                    </>
+                  )}
+                </motion.button>
 
-                    <p className="text-caption text-muted-foreground mb-6 text-center">
-                      {t('withdraw.enterOtp')}
-                    </p>
-
-                    {/* OTP Input */}
-                    <div className="flex gap-2 justify-center mb-6">
-                      {otp.map((digit, index) => (
-                        <input
-                          key={index}
-                          id={`otp-${index}`}
-                          type="text"
-                          inputMode="numeric"
-                          maxLength={1}
-                          value={digit}
-                          onChange={(e) => handleOtpChange(index, e.target.value)}
-                          className="w-12 h-14 rounded-xl bg-muted/30 border border-border/30 text-center text-title text-foreground font-bold focus:outline-none focus:border-primary transition-colors"
-                        />
-                      ))}
-                    </div>
-
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleVerifyOtp}
-                      disabled={isProcessing || otp.some(d => !d)}
-                      className="w-full btn-primary flex items-center justify-center gap-2 py-4 disabled:opacity-50"
-                    >
-                      {isProcessing ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <>
-                          <Lock className="w-4 h-4" />
-                          {t('withdraw.verifyAndWithdraw')}
-                        </>
-                      )}
-                    </motion.button>
-
-                    <button className="w-full text-center text-caption text-primary mt-4 hover:underline">
-                      {t('withdraw.resendCode')}
-                    </button>
-                  </GlassCard>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-        );
+                <button className="w-full text-center text-caption text-primary mt-4 hover:underline">
+                  {t('withdraw.resendCode')}
+                </button>
+              </GlassCard>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
 };
 
-        export default WithdrawScreen;
+export default WithdrawScreen;
