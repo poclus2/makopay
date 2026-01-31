@@ -33,7 +33,7 @@ export class ProductsService {
         return this.prisma.product.findMany({
             where,
             include: { investmentPlan: true },
-            orderBy: { createdAt: 'desc' },
+            orderBy: { price: 'asc' },
         });
     }
 
