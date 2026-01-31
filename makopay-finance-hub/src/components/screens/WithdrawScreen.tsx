@@ -85,9 +85,9 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
     }
   };
 
-  const minWithdraw = 2000; // Display units
+  const minWithdraw = 10000; // Display units
   const maxWithdraw = balance; // Display units
-  const fee = amount * (withdrawalFeePercent / 100); // 1.5% fee
+  const fee = amount * (withdrawalFeePercent / 100);
 
   const quickAmounts = [10000, 25000, 40000, 100000, 200000, 500000];
 
@@ -106,7 +106,7 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
 
   const handleConfirmWithdraw = () => {
     if (amount < minWithdraw || amount > maxWithdraw) {
-      toast.error(t('withdraw.errorCheck'));
+      toast.error(`${t('withdraw.errorCheck')} (Min ${formatCurrency(minWithdraw / rate)})`);
       return;
     }
 
@@ -290,7 +290,7 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
             <Smartphone className={`w-6 h-6 mb-2 ${selectedMethod === 'mobile' ? 'text-primary' : 'text-muted-foreground'}`} />
             <p className="font-bold text-sm">Mobile Money</p>
           </button>
-          <button
+          {/* <button
             onClick={() => setSelectedMethod('bank')}
             className={`p-4 rounded-2xl border text-left transition-all ${selectedMethod === 'bank'
               ? 'bg-primary/20 border-primary shadow-glow'
@@ -353,118 +353,118 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
       </div>
 
       {/* Fee Preview */}
-      <GlassCard className="mb-6 space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-body text-muted-foreground">{t('withdraw.amount')}</span>
-          <span className="text-body text-foreground tabular-nums">{formatCurrency(amount / rate)}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-body text-muted-foreground">{t('withdraw.fee')} (1.5%)</span>
-          <span className="text-body text-destructive tabular-nums">-{formatCurrency(fee / rate)}</span>
-        </div>
-        <div className="border-t border-border/30 pt-3">
-          <div className="flex items-center justify-between">
-            <span className="text-headline text-foreground">{t('withdraw.youWillReceive')}</span>
-            <span className="text-headline text-primary font-bold tabular-nums">{formatCurrency((amount - fee) / rate)}</span>
+          <GlassCard className="mb-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-body text-muted-foreground">{t('withdraw.amount')}</span>
+              <span className="text-body text-foreground tabular-nums">{formatCurrency(amount / rate)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-body text-muted-foreground">{t('withdraw.fee')} (1.5%)</span>
+              <span className="text-body text-destructive tabular-nums">-{formatCurrency(fee / rate)}</span>
+            </div>
+            <div className="border-t border-border/30 pt-3">
+              <div className="flex items-center justify-between">
+                <span className="text-headline text-foreground">{t('withdraw.youWillReceive')}</span>
+                <span className="text-headline text-primary font-bold tabular-nums">{formatCurrency((amount - fee) / rate)}</span>
+              </div>
+            </div>
+          </GlassCard>
+
+          {/* Warning */}
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-warning/10 border border-warning/20 mb-6">
+            <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+            <p className="text-caption text-warning">
+              {t('withdraw.warning')}
+            </p>
           </div>
-        </div>
-      </GlassCard>
 
-      {/* Warning */}
-      <div className="flex items-start gap-3 p-4 rounded-xl bg-warning/10 border border-warning/20 mb-6">
-        <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-        <p className="text-caption text-warning">
-          {t('withdraw.warning')}
-        </p>
-      </div>
-
-      {/* Confirm Button */}
-      <motion.button
-        whileTap={{ scale: 0.98 }}
-        onClick={handleConfirmWithdraw}
-        disabled={
-          (selectedMethod === 'mobile' && (!phoneNumber || !selectedOperator)) ||
-          (selectedMethod === 'bank' && !iban) ||
-          amount < minWithdraw || amount > maxWithdraw
-        }
-        className="w-full btn-primary flex items-center justify-center gap-2 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <Lock className="w-4 h-4" />
-        {t('withdraw.confirm')}
-      </motion.button>
-
-      {/* OTP Modal */}
-      <AnimatePresence>
-        {showOtp && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-background/80 backdrop-blur-sm p-4"
+          {/* Confirm Button */}
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={handleConfirmWithdraw}
+            disabled={
+              (selectedMethod === 'mobile' && (!phoneNumber || !selectedOperator)) ||
+              (selectedMethod === 'bank' && !iban) ||
+              amount < minWithdraw || amount > maxWithdraw
+            }
+            className="w-full btn-primary flex items-center justify-center gap-2 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <motion.div
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              className="w-full max-w-md"
-            >
-              <GlassCard variant="solid" className="rounded-t-[28px]">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-headline text-foreground">{t('withdraw.verifyOtp')}</h2>
-                  <button
-                    onClick={() => setShowOtp(false)}
-                    className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center"
-                  >
-                    <X className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                </div>
+            <Lock className="w-4 h-4" />
+            {t('withdraw.confirm')}
+          </motion.button>
 
-                <p className="text-caption text-muted-foreground mb-6 text-center">
-                  {t('withdraw.enterOtp')}
-                </p>
-
-                {/* OTP Input */}
-                <div className="flex gap-2 justify-center mb-6">
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      id={`otp-${index}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(index, e.target.value)}
-                      className="w-12 h-14 rounded-xl bg-muted/30 border border-border/30 text-center text-title text-foreground font-bold focus:outline-none focus:border-primary transition-colors"
-                    />
-                  ))}
-                </div>
-
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleVerifyOtp}
-                  disabled={isProcessing || otp.some(d => !d)}
-                  className="w-full btn-primary flex items-center justify-center gap-2 py-4 disabled:opacity-50"
+          {/* OTP Modal */}
+          <AnimatePresence>
+            {showOtp && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-end justify-center bg-background/80 backdrop-blur-sm p-4"
+              >
+                <motion.div
+                  initial={{ y: 100, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 100, opacity: 0 }}
+                  className="w-full max-w-md"
                 >
-                  {isProcessing ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Lock className="w-4 h-4" />
-                      {t('withdraw.verifyAndWithdraw')}
-                    </>
-                  )}
-                </motion.button>
+                  <GlassCard variant="solid" className="rounded-t-[28px]">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-headline text-foreground">{t('withdraw.verifyOtp')}</h2>
+                      <button
+                        onClick={() => setShowOtp(false)}
+                        className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center"
+                      >
+                        <X className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    </div>
 
-                <button className="w-full text-center text-caption text-primary mt-4 hover:underline">
-                  {t('withdraw.resendCode')}
-                </button>
-              </GlassCard>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
+                    <p className="text-caption text-muted-foreground mb-6 text-center">
+                      {t('withdraw.enterOtp')}
+                    </p>
+
+                    {/* OTP Input */}
+                    <div className="flex gap-2 justify-center mb-6">
+                      {otp.map((digit, index) => (
+                        <input
+                          key={index}
+                          id={`otp-${index}`}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handleOtpChange(index, e.target.value)}
+                          className="w-12 h-14 rounded-xl bg-muted/30 border border-border/30 text-center text-title text-foreground font-bold focus:outline-none focus:border-primary transition-colors"
+                        />
+                      ))}
+                    </div>
+
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleVerifyOtp}
+                      disabled={isProcessing || otp.some(d => !d)}
+                      className="w-full btn-primary flex items-center justify-center gap-2 py-4 disabled:opacity-50"
+                    >
+                      {isProcessing ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>
+                          <Lock className="w-4 h-4" />
+                          {t('withdraw.verifyAndWithdraw')}
+                        </>
+                      )}
+                    </motion.button>
+
+                    <button className="w-full text-center text-caption text-primary mt-4 hover:underline">
+                      {t('withdraw.resendCode')}
+                    </button>
+                  </GlassCard>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+        );
 };
 
-export default WithdrawScreen;
+        export default WithdrawScreen;
