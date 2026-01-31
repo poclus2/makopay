@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FeesTab } from '../components/settings/FeesTab';
-import { Percent } from 'lucide-react';
+import { Percent, Bell, Shield } from 'lucide-react'; // Added Bell, Shield
+import { NotificationTab } from '../components/settings/NotificationTab'; // Added NotificationTab
 
 export function SettingsPage() {
     const [activeTab, setActiveTab] = useState('notifications');
