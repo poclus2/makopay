@@ -68,11 +68,11 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
     }
   };
 
-  const minWithdraw = 50;
+  const minWithdraw = 2000; // Increased min withdraw to realistic amount
   const maxWithdraw = balance;
   const fee = amount * 0.015; // 1.5% fee
 
-  const quickAmounts = [100, 250, 500, 1000, 5000, 10000];
+  const quickAmounts = [10000, 25000, 40000, 100000, 200000, 500000];
 
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) return;
@@ -208,14 +208,22 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
       <div className="mb-6">
         <h3 className="text-headline text-foreground mb-3">{t('withdraw.amountToWithdraw')}</h3>
         <GlassCard className="space-y-4">
-          <div className="text-center">
-            <span className="text-display font-bold text-primary tabular-nums">{formatCurrency(amount)}</span>
+          <div className="text-center relative">
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              className="text-display font-bold text-primary tabular-nums bg-transparent text-center w-full focus:outline-none focus:border-b border-primary/20"
+              placeholder="0"
+            />
+            <span className="text-sm text-muted-foreground absolute right-4 top-1/2 -translate-y-1/2">FCFA</span>
           </div>
 
           <input
             type="range"
             min={minWithdraw}
             max={Math.max(minWithdraw, maxWithdraw)}
+            step={100}
             value={amount}
             onChange={(e) => setAmount(Number(e.target.value))}
             className="w-full h-2 rounded-full appearance-none cursor-pointer"
@@ -230,13 +238,13 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
           </div>
 
           {/* Quick Amount Buttons */}
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {quickAmounts.map((quickAmount) => (
               <button
                 key={quickAmount}
                 onClick={() => setAmount(Math.min(quickAmount, maxWithdraw))}
                 disabled={quickAmount > maxWithdraw}
-                className={`flex-1 min-w-[60px] py-2 rounded-xl text-caption font-medium transition-all disabled:opacity-30 ${amount === quickAmount
+                className={`flex-1 py-3 rounded-xl text-caption font-medium transition-all disabled:opacity-30 ${amount === quickAmount
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
                   }`}
