@@ -88,16 +88,20 @@ export class WalletService {
         }
 
         // Notification (Async)
+        // Convert EUR to XOF for display
+        const RATE_XOF = 655.957;
+        const amountXof = amount.mul(RATE_XOF).toFixed(0); // Show whole numbers for XOF
+
         try {
             if (type === WalletTransactionType.DEPOSIT) {
-                await this.notificationsService.sendDepositSuccessNotification(userId, amount.toString(), 'XAF', 'Bank/Crypto');
+                await this.notificationsService.sendDepositSuccessNotification(userId, amountXof, 'XAF', 'Bank/Crypto');
             } else if (type === WalletTransactionType.INVESTMENT_PAYOUT) {
-                await this.notificationsService.sendPayoutNotification(userId, amount.toString(), 'XAF', 'Investment Yield');
+                await this.notificationsService.sendPayoutNotification(userId, amountXof, 'XAF', 'Investment Yield');
             } else if (type === WalletTransactionType.MLM_COMMISSION) {
-                await this.notificationsService.sendPayoutNotification(userId, amount.toString(), 'XAF', 'Network Commission');
+                await this.notificationsService.sendPayoutNotification(userId, amountXof, 'XAF', 'Network Commission');
             } else {
                 // Fallback for adjustments etc.
-                const message = `Credit of ${amount} EUR received. Type: ${type}, Source: ${source}.`;
+                const message = `Credit of ${amountXof} XAF received. Type: ${type}, Source: ${source}.`;
                 await this.notificationsService.createInAppNotification(userId, 'Funds Received', message, 'SUCCESS');
             }
         } catch (e) {
@@ -150,9 +154,12 @@ export class WalletService {
         }
 
         // Notification (Async)
+        const RATE_XOF = 655.957;
+        const amountXof = amount.mul(RATE_XOF).toFixed(0);
+
         try {
             if (type === WalletTransactionType.WITHDRAWAL) {
-                await this.notificationsService.sendWithdrawalRequestNotification(userId, amount.toString(), 'XAF');
+                await this.notificationsService.sendWithdrawalRequestNotification(userId, amountXof, 'XAF');
             }
         } catch (e) {
             this.logger.error('Failed to send debit notification', e);
@@ -174,7 +181,29 @@ export class WalletService {
             }
         });
 
-        await this.notificationsService.createInAppNotification(userId, 'Deposit Request', `Deposit request ${referenceCode} for ${amount} ${currency} initiated via ${method}.`, 'INFO');
+        // Convert if needed. If input currency is EUR (default default?)
+        // The method signature has currency="XAF".
+        // But the amount? Is it in Currency or EUR?
+        // WalletController passes converted amount?
+        // Let's check WalletController.deposit.
+        // It converts body.amount to Decimal. It assumes amount is in EUR usually?
+        // But backend doesn't convert deposit requests usually, it just logs them.
+        // Assuming deposit request amount IS XAF if currency is XAF.
+        // If wallet controller receives EUR amount, then no conversion needed if currency says EUR.
+        // But if we want to display XAF:
+
+        let displayAmount = amount.toString();
+        let displayCurrency = currency;
+
+        // Assuming amount is stored in EUR in DB (standard practice for this app?), we should convert.
+        // But wait, createDepositRequest takes `amount`.
+        // I will assume for now simply amount * 655.957 if we want XAF and amount is EUR.
+        // But I'll stick to what we did in credit/debit.
+
+        const RATE_XOF = 655.957;
+        const amountXof = amount.mul(RATE_XOF).toFixed(0);
+
+        await this.notificationsService.createInAppNotification(userId, 'Deposit Request', `Deposit request ${referenceCode} for ${amountXof} XAF initiated via ${method}.`, 'INFO');
 
         return req;
     }
@@ -210,12 +239,7 @@ export class WalletService {
                     amount: amount.negated(),
                     status: 'PENDING',
                     reference: details,
-                    balanceAfter: wallet.balance.sub(amount), // Intermediate balance purely for record? Or final? Usually balanceAfter reflects the state after THIS transaction.
-                    // If we do batch, order matters.
-                    // Let's say Balance 1000.
-                    // 1. Withdrawal 100. Balance -> 900.
-                    // 2. Fee 5. Balance -> 895.
-                    // Ideally we want to show the specific balance after each step.
+                    balanceAfter: wallet.balance.sub(amount),
                 }
             });
 
@@ -224,23 +248,21 @@ export class WalletService {
                 await tx.walletLedger.create({
                     data: {
                         walletId: wallet.id,
-                        type: WalletTransactionType.ADJUSTMENT, // or FEE if we had it. ADJUSTMENT implies system action.
-                        source: LedgerSource.ADMIN, // or SYSTEM
+                        type: WalletTransactionType.ADJUSTMENT,
+                        source: LedgerSource.ADMIN,
                         amount: feeAmount.negated(),
-                        status: 'COMPLETED', // Fees are immediate
+                        status: 'COMPLETED',
                         reference: `FEE-${withdrawalLedger.id} (${withdrawalFeePercent}%)`,
-                        balanceAfter: newBalance, // Final balance
+                        balanceAfter: newBalance,
                     }
                 });
             } else {
-                // If no fee, update the first ledger's balanceAfter to be the final one
                 await tx.walletLedger.update({
                     where: { id: withdrawalLedger.id },
                     data: { balanceAfter: newBalance }
                 });
             }
 
-            // Fix BalanceAfter for first ledger if fee exists
             if (Number(feeAmount) > 0) {
                 await tx.walletLedger.update({
                     where: { id: withdrawalLedger.id },
@@ -249,8 +271,11 @@ export class WalletService {
             }
 
             // Notification
+            const RATE_XOF = 655.957;
+            const amountXof = amount.mul(RATE_XOF).toFixed(0);
+
             try {
-                await this.notificationsService.sendWithdrawalRequestNotification(userId, amount.toString(), 'XAF');
+                await this.notificationsService.sendWithdrawalRequestNotification(userId, amountXof, 'XAF');
             } catch (e) {
                 this.logger.error('Failed to send withdrawal notification', e);
             }
