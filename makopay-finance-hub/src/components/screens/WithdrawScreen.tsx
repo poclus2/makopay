@@ -52,11 +52,12 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
-    const newBalance = availableBalance * rate;
-    setBalance(newBalance);
+    if (availableBalance > 0) {
+      setBalance(availableBalance * rate);
+    } else {
+      fetchWalletBalance();
+    }
     fetchFees();
-    // If we want to pre-fill, we can. But usually start at 0 or min.
-    // setAmount(Math.min(500 * rate, newBalance)); 
   }, [availableBalance, rate]);
 
   const fetchFees = async () => {
