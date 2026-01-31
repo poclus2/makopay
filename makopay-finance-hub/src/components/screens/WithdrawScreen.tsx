@@ -30,9 +30,15 @@ const mobileOperators = [
 
 export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: WithdrawScreenProps) => {
   const { t } = useTranslation();
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency, availableCurrencies, currency } = useCurrency();
+  const rate = availableCurrencies.find(c => c.code === currency)?.rate || 1;
+
   const [amount, setAmount] = useState(0);
-  const [balance, setBalance] = useState(availableBalance);
+  // balance state is not strictly needed if we use availableBalance prop re-calculation, 
+  // but let's keep it for local updates if needed.
+  // We will store balance in DISPLAY currency for easier comparisons.
+  const [balance, setBalance] = useState(availableBalance * rate);
+  const [withdrawalFeePercent, setWithdrawalFeePercent] = useState(1.5); // Default, updated from API
 
   // Payment Method State
   const [selectedMethod, setSelectedMethod] = useState<'mobile' | 'bank'>('mobile');
@@ -46,21 +52,31 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
-    if (availableBalance > 0) {
-      setBalance(availableBalance);
-      setAmount(Math.min(500, availableBalance));
-    } else {
-      fetchWalletBalance();
+    const newBalance = availableBalance * rate;
+    setBalance(newBalance);
+    fetchFees();
+    // If we want to pre-fill, we can. But usually start at 0 or min.
+    // setAmount(Math.min(500 * rate, newBalance)); 
+  }, [availableBalance, rate]);
+
+  const fetchFees = async () => {
+    try {
+      const { data } = await api.get('/settings/fees');
+      if (data && data.withdrawalFeePercent !== undefined) {
+        setWithdrawalFeePercent(Number(data.withdrawalFeePercent));
+      }
+    } catch (error) {
+      console.error('Failed to fetch fees', error);
     }
-  }, [availableBalance]);
+  };
 
   const fetchWalletBalance = async () => {
     try {
       const { data } = await api.get('/wallet');
       if (data && data.balance) {
+        // data.balance is EUR
         const fetchedBalance = Number(data.balance);
-        setBalance(fetchedBalance);
-        setAmount(Math.min(500, fetchedBalance));
+        setBalance(fetchedBalance * rate);
       }
     } catch (error) {
       console.error('Failed to fetch balance', error);
@@ -68,9 +84,9 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
     }
   };
 
-  const minWithdraw = 2000; // Increased min withdraw to realistic amount
-  const maxWithdraw = balance;
-  const fee = amount * 0.015; // 1.5% fee
+  const minWithdraw = 2000; // Display units
+  const maxWithdraw = balance; // Display units
+  const fee = amount * (withdrawalFeePercent / 100); // 1.5% fee
 
   const quickAmounts = [10000, 25000, 40000, 100000, 200000, 500000];
 
@@ -120,8 +136,11 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
         ? `${selectedOperator?.toUpperCase()} : ${phoneNumber}`
         : `IBAN : ${iban}`;
 
+      // Convert back to base currency (EUR) for API
+      const amountInBaseCurrency = amount / rate;
+
       await api.post('/wallet/withdraw', {
-        amount,
+        amount: amountInBaseCurrency,
         method: selectedMethod,
         details
       });
@@ -174,7 +193,7 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
           transition={{ delay: 0.8 }}
           className="mt-4 text-headline text-primary font-bold tabular-nums"
         >
-          {formatCurrency(amount - fee)}
+          {formatCurrency((amount - fee) / rate)}
         </motion.div>
       </motion.div>
     );
@@ -200,7 +219,7 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
       <GlassCard variant="solid" className="mb-6 text-center">
         <p className="text-caption text-muted-foreground mb-1">{t('withdraw.availableBalance')}</p>
         <p className="text-display font-bold text-foreground tabular-nums glow-text">
-          {formatCurrency(balance)}
+          {formatCurrency(balance / rate)}
         </p>
       </GlassCard>
 
@@ -216,7 +235,7 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
               className="text-display font-bold text-primary tabular-nums bg-transparent text-center w-full focus:outline-none focus:border-b border-primary/20"
               placeholder="0"
             />
-            <span className="text-sm text-muted-foreground absolute right-4 top-1/2 -translate-y-1/2">FCFA</span>
+            <span className="text-sm text-muted-foreground absolute right-4 top-1/2 -translate-y-1/2">{currency === 'XOF' ? 'FCFA' : currency}</span>
           </div>
 
           <input
@@ -233,8 +252,8 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
           />
 
           <div className="flex items-center justify-between text-caption text-muted-foreground">
-            <span>{formatCurrency(minWithdraw)}</span>
-            <span>{formatCurrency(maxWithdraw)}</span>
+            <span>{formatCurrency(minWithdraw / rate)}</span>
+            <span>{formatCurrency(maxWithdraw / rate)}</span>
           </div>
 
           {/* Quick Amount Buttons */}
@@ -249,7 +268,8 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
                   : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
                   }`}
               >
-                {formatCurrency(quickAmount)}
+                {/* Use manual format to avoid rounding/conversion issues for presets if they are intentionally round in XOF */}
+                {new Intl.NumberFormat('fr-FR').format(quickAmount)} {currency === 'XOF' ? 'F' : currency}
               </button>
             ))}
           </div>
@@ -335,16 +355,16 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
       <GlassCard className="mb-6 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-body text-muted-foreground">{t('withdraw.amount')}</span>
-          <span className="text-body text-foreground tabular-nums">{formatCurrency(amount)}</span>
+          <span className="text-body text-foreground tabular-nums">{formatCurrency(amount / rate)}</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-body text-muted-foreground">{t('withdraw.fee')} (1.5%)</span>
-          <span className="text-body text-destructive tabular-nums">-{formatCurrency(fee)}</span>
+          <span className="text-body text-destructive tabular-nums">-{formatCurrency(fee / rate)}</span>
         </div>
         <div className="border-t border-border/30 pt-3">
           <div className="flex items-center justify-between">
             <span className="text-headline text-foreground">{t('withdraw.youWillReceive')}</span>
-            <span className="text-headline text-primary font-bold tabular-nums">{formatCurrency(amount - fee)}</span>
+            <span className="text-headline text-primary font-bold tabular-nums">{formatCurrency((amount - fee) / rate)}</span>
           </div>
         </div>
       </GlassCard>

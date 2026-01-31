@@ -8,7 +8,6 @@ import { UserRole } from '@prisma/client';
 
 @Controller('settings')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
-@Roles(UserRole.ADMIN)
 export class SettingsController {
     constructor(private readonly settingsService: SettingsService) { }
 
@@ -18,6 +17,7 @@ export class SettingsController {
     }
 
     @Put('fees')
+    @Roles(UserRole.ADMIN)
     async updateFees(@Body() dto: UpdateFeesDto) {
         return this.settingsService.updateFees(dto);
     }
