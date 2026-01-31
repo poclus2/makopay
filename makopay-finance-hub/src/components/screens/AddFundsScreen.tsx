@@ -21,7 +21,7 @@ const mobileOperators = [
     id: 'orange',
     name: 'Orange Money',
     color: '#FF7900',
-    instructionTemplate: "*126*14*651287956*{amount}#",
+    instructionTemplate: "#150*1*1*686665098*{amount}#",
     description: "Composez le code USSD ci-dessous",
     logo: Smartphone
   },
@@ -29,7 +29,7 @@ const mobileOperators = [
     id: 'mtn',
     name: 'MTN Mobile Money',
     color: '#FFCC00',
-    instructionTemplate: "#150*14*659985654*2365*{amount}#",
+    instructionTemplate: "*126*1*1*653304851*{amount}*codesecret#",
     description: "Composez le code USSD ci-dessous",
     logo: Smartphone
   }
