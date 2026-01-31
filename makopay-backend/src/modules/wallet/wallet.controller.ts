@@ -4,31 +4,48 @@ import { AuthGuard } from '@nestjs/passport';
 import { LedgerSource, WalletTransactionType } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { PaymentOperation } from '../../core/decorators/payment-operation.decorator';
+import { AuthService } from '../auth/auth.service';
 
 @Controller('wallet')
 @UseGuards(AuthGuard('jwt'))
 export class WalletController {
-    constructor(private readonly walletService: WalletService) { }
+    constructor(
+        private readonly walletService: WalletService,
+        private readonly authService: AuthService
+    ) { }
 
     @Get()
     async getWallet(@Request() req: any) {
         return this.walletService.getWallet(req.user.userId);
     }
 
+    @Post('withdraw/otp')
+    async withdrawOtp(@Request() req: any) {
+        return this.authService.generateWithdrawalOtp(req.user.userId);
+    }
+
     @Post('withdraw')
     @PaymentOperation()
-    async withdraw(@Request() req: any, @Body() body: { amount: number, method?: string, details?: string }) {
+    async withdraw(@Request() req: any, @Body() body: { amount: number, method?: string, details?: string, otp?: string }) {
         if (!body.amount || body.amount <= 0) {
             throw new BadRequestException('Invalid amount');
         }
+
+        // Verify OTP logic enabled
+        if (!body.otp) {
+            throw new BadRequestException('Verification code required');
+        }
+        const isValid = await this.authService.validateOtp(req.user.userId, body.otp);
+        if (!isValid) {
+            throw new BadRequestException('Invalid verification code');
+        }
+
         const amount = new Prisma.Decimal(body.amount);
-        return this.walletService.debit(
+        return this.walletService.requestWithdrawal(
             req.user.userId,
             amount,
-            WalletTransactionType.WITHDRAWAL,
-            LedgerSource.WITHDRAWAL,
-            body.details || `REQ-${Date.now()}`,
-            'PENDING'
+            body.method || 'UNKNOWN',
+            body.details || `REQ-${Date.now()}`
         );
     }
 

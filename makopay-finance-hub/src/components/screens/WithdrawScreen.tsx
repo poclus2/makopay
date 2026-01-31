@@ -50,6 +50,8 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [otpChannel, setOtpChannel] = useState<'email' | 'sms' | null>(null);
+  const [otpTarget, setOtpTarget] = useState<string>('');
 
   useEffect(() => {
     if (availableBalance > 0) {
@@ -104,7 +106,7 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
     }
   };
 
-  const handleConfirmWithdraw = () => {
+  const handleConfirmWithdraw = async () => {
     if (amount < minWithdraw || amount > maxWithdraw) {
       toast.error(`${t('withdraw.errorCheck')} (Min ${formatCurrency(minWithdraw / rate)})`);
       return;
@@ -126,7 +128,20 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
       }
     }
 
-    setShowOtp(true);
+    setIsProcessing(true);
+    try {
+      const { data } = await api.post('/wallet/withdraw/otp');
+      setOtpChannel(data.channel);
+      setOtpTarget(data.target);
+
+      setIsProcessing(false);
+      setShowOtp(true);
+      // toast.success(`Code envoyé par ${data.channel === 'email' ? 'Email' : 'SMS'}`);
+    } catch (error) {
+      setIsProcessing(false);
+      console.error(error);
+      toast.error("Impossible d'envoyer le code de vérification");
+    }
   };
 
   const handleVerifyOtp = async () => {
@@ -143,7 +158,8 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
       await api.post('/wallet/withdraw', {
         amount: amountInBaseCurrency,
         method: selectedMethod,
-        details
+        details,
+        otp: otp.join('')
       });
 
       setIsProcessing(false);
@@ -384,7 +400,9 @@ export const WithdrawScreen = ({ onBack, onComplete, availableBalance = 0 }: Wit
                 </div>
 
                 <p className="text-caption text-muted-foreground mb-6 text-center">
-                  {t('withdraw.enterOtp')}
+                  {otpChannel === 'email'
+                    ? `Un code de vérification a été envoyé à votre adresse email ${otpTarget}`
+                    : `Un code de vérification a été envoyé par SMS au ${otpTarget}`}
                 </p>
 
                 <div className="flex gap-2 justify-center mb-6">

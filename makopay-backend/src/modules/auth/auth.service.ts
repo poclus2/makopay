@@ -208,4 +208,60 @@ export class AuthService {
 
         return { message: 'Password changed successfully' };
     }
+    async generateWithdrawalOtp(userId: string): Promise<{ channel: 'email' | 'sms', target: string }> {
+        const user = await this.usersService.findById(userId);
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        await this.usersService.update(user.id, {
+            otpCode,
+            otpExpiresAt,
+        });
+
+        // Determine channel: "Pour les comptes ayant une adresse email, envoi le code a 6 chiffres sur leur addresses email."
+        let channel: 'email' | 'sms' = 'sms';
+        let target = user.phoneNumber;
+
+        if (user.email) {
+            channel = 'email';
+            target = user.email;
+        }
+
+        // Send OTP
+        try {
+            await this.notificationsService.sendOtp(target, otpCode, channel);
+        } catch (error) {
+            console.error(`Failed to send withdrawal OTP via ${channel}`, error);
+            throw new BadRequestException(`Failed to send verification code via ${channel}`);
+        }
+
+        return { channel, target };
+    }
+
+    async validateOtp(userId: string, code: string): Promise<boolean> {
+        const user = await this.usersService.findById(userId);
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        if (!user.otpCode || user.otpCode !== code) {
+            return false;
+        }
+
+        if (user.otpExpiresAt && user.otpExpiresAt < new Date()) {
+            throw new BadRequestException('Verification code expired');
+        }
+
+        // Clear OTP after successful validation (optional but good security)
+        await this.usersService.update(user.id, {
+            otpCode: null,
+            otpExpiresAt: null,
+        });
+
+        return true;
+    }
 }

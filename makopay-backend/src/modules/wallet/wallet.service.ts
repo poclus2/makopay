@@ -3,13 +3,16 @@ import { PrismaService } from '../../core/database/prisma/prisma.service';
 import { Prisma, WalletTransactionType, LedgerSource } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 
+import { SettingsService } from '../settings/settings.service';
+
 @Injectable()
 export class WalletService {
     private readonly logger = new Logger(WalletService.name);
 
     constructor(
         private prisma: PrismaService,
-        private notificationsService: NotificationsService
+        private notificationsService: NotificationsService,
+        private settingsService: SettingsService
     ) { }
 
     async getBalance(userId: string) {
@@ -174,6 +177,86 @@ export class WalletService {
         await this.notificationsService.createInAppNotification(userId, 'Deposit Request', `Deposit request ${referenceCode} for ${amount} ${currency} initiated via ${method}.`, 'INFO');
 
         return req;
+    }
+
+    // Withdrawal Request with Fee
+    async requestWithdrawal(userId: string, amount: Prisma.Decimal, method: string, details: string) {
+        // 1. Fetch Fee
+        const { withdrawalFeePercent } = await this.settingsService.getFees();
+        const feeAmount = amount.mul(withdrawalFeePercent).div(100);
+        const totalDebit = amount.add(feeAmount);
+
+        return this.prisma.$transaction(async (tx) => {
+            const wallet = await tx.wallet.findUnique({ where: { userId } });
+            if (!wallet) throw new BadRequestException('Wallet not found');
+            if (wallet.balance.lt(totalDebit)) {
+                throw new BadRequestException(`Insufficient funds. Total required: ${totalDebit} (Amount: ${amount} + Fee: ${feeAmount})`);
+            }
+
+            const newBalance = wallet.balance.sub(totalDebit);
+
+            // Update Wallet
+            await tx.wallet.update({
+                where: { id: wallet.id },
+                data: { balance: newBalance }
+            });
+
+            // Ledger 1: Withdrawal (Principal)
+            const withdrawalLedger = await tx.walletLedger.create({
+                data: {
+                    walletId: wallet.id,
+                    type: WalletTransactionType.WITHDRAWAL,
+                    source: LedgerSource.WITHDRAWAL,
+                    amount: amount.negated(),
+                    status: 'PENDING',
+                    reference: details,
+                    balanceAfter: wallet.balance.sub(amount), // Intermediate balance purely for record? Or final? Usually balanceAfter reflects the state after THIS transaction.
+                    // If we do batch, order matters.
+                    // Let's say Balance 1000.
+                    // 1. Withdrawal 100. Balance -> 900.
+                    // 2. Fee 5. Balance -> 895.
+                    // Ideally we want to show the specific balance after each step.
+                }
+            });
+
+            // Ledger 2: Fee
+            if (Number(feeAmount) > 0) {
+                await tx.walletLedger.create({
+                    data: {
+                        walletId: wallet.id,
+                        type: WalletTransactionType.ADJUSTMENT, // or FEE if we had it. ADJUSTMENT implies system action.
+                        source: LedgerSource.ADMIN, // or SYSTEM
+                        amount: feeAmount.negated(),
+                        status: 'COMPLETED', // Fees are immediate
+                        reference: `FEE-${withdrawalLedger.id} (${withdrawalFeePercent}%)`,
+                        balanceAfter: newBalance, // Final balance
+                    }
+                });
+            } else {
+                // If no fee, update the first ledger's balanceAfter to be the final one
+                await tx.walletLedger.update({
+                    where: { id: withdrawalLedger.id },
+                    data: { balanceAfter: newBalance }
+                });
+            }
+
+            // Fix BalanceAfter for first ledger if fee exists
+            if (Number(feeAmount) > 0) {
+                await tx.walletLedger.update({
+                    where: { id: withdrawalLedger.id },
+                    data: { balanceAfter: wallet.balance.sub(amount) }
+                });
+            }
+
+            // Notification
+            try {
+                await this.notificationsService.sendWithdrawalRequestNotification(userId, amount.toString(), 'XAF');
+            } catch (e) {
+                this.logger.error('Failed to send withdrawal notification', e);
+            }
+
+            return withdrawalLedger;
+        });
     }
 
     // Admin: Get all pending withdrawals

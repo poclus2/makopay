@@ -3,12 +3,15 @@ import { PrismaService } from '../../core/database/prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { UsersService } from '../users/users.service';
 
+import { SettingsService } from '../settings/settings.service';
+
 @Injectable()
 export class AdminService {
     constructor(
         private prisma: PrismaService,
         private walletService: WalletService,
-        private usersService: UsersService
+        private usersService: UsersService,
+        private settingsService: SettingsService
     ) { }
 
     async getStats() {
@@ -82,6 +85,11 @@ export class AdminService {
         const conversionRate = deposit.currency === 'XAF' ? 655.957 : 1;
         const amountInEUR = Number(deposit.amount) / conversionRate;
 
+        // Fetch Fee Percentage
+        const { depositFeePercent } = await this.settingsService.getFees();
+        const feeAmount = amountInEUR * (depositFeePercent / 100);
+        const netAmount = amountInEUR - feeAmount;
+
         await this.prisma.$transaction(async (tx) => {
             await tx.depositRequest.update({
                 where: { id: depositId },
@@ -94,7 +102,7 @@ export class AdminService {
                 wallet = await tx.wallet.create({ data: { userId: deposit.userId } });
             }
 
-            const newBalance = wallet.balance.add(amountInEUR);
+            const newBalance = wallet.balance.add(netAmount);
 
             await tx.wallet.update({
                 where: { id: wallet.id },
@@ -106,8 +114,9 @@ export class AdminService {
                     walletId: wallet.id,
                     type: 'DEPOSIT',
                     source: 'ADMIN',
-                    amount: amountInEUR,
-                    reference: deposit.referenceCode,
+                    amount: netAmount,
+                    // Store strict amount, fee implied by difference or tracked separately later
+                    reference: `${deposit.referenceCode} (Fee: ${depositFeePercent}%)`,
                     balanceAfter: newBalance,
                     status: 'COMPLETED'
                 }
