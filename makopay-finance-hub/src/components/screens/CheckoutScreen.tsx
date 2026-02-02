@@ -26,9 +26,11 @@ export const CheckoutScreen = ({ onBack, onComplete, product, quantity = 1 }: Ch
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'wallet'>('wallet');
   const [balance, setBalance] = useState(0);
   const [loadingBalance, setLoadingBalance] = useState(true);
+  const [orderFeePercent, setOrderFeePercent] = useState(0);
 
   useEffect(() => {
     fetchWalletBalance();
+    fetchFees();
   }, []);
 
   const fetchWalletBalance = async () => {
@@ -39,6 +41,16 @@ export const CheckoutScreen = ({ onBack, onComplete, product, quantity = 1 }: Ch
       console.error('Failed to fetch wallet balance', error);
     } finally {
       setLoadingBalance(false);
+    }
+  };
+
+  const fetchFees = async () => {
+    try {
+      const { data } = await api.get('/settings/fees');
+      setOrderFeePercent(data.orderFeePercent || 0);
+    } catch (error) {
+      console.error('Failed to fetch fees', error);
+      setOrderFeePercent(0);
     }
   };
 
@@ -60,7 +72,7 @@ export const CheckoutScreen = ({ onBack, onComplete, product, quantity = 1 }: Ch
   }
 
   const total = Number(product.price) * quantity;
-  const processingFee = total * 0.03; // 3% processing fee
+  const processingFee = total * (orderFeePercent / 100);
   const finalTotal = total + processingFee;
 
   const handleCheckout = async () => {
