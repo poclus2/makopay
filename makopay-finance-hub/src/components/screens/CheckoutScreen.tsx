@@ -157,7 +157,8 @@ export const CheckoutScreen = ({ onBack, onComplete, product, quantity = 1 }: Ch
             <span className="text-foreground tabular-nums">{formatCurrency(total)}</span>
           </div>
           <div className="flex items-center justify-between text-body">
-            <span className="text-muted-foreground">{t('checkout.processingFee') || 'Processing Fee'} (3%)</span>
+            <span className="text-muted-foreground">{t('checkout.processingFee') || 'Processing Fee'}
+              {orderFeePercent > 0 ? ` (${orderFeePercent}%)` : ''}</span>
             <span className="text-foreground tabular-nums">{formatCurrency(processingFee)}</span>
           </div>
           <div className="flex items-center justify-between text-headline pt-2 border-t border-border/20">
