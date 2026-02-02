@@ -72,7 +72,7 @@ export class MlmService {
         });
 
         // Fetch MLM commissions from wallet ledger
-        let commissionsReceived = [];
+        let commissionsReceived: Array<{ amount: Prisma.Decimal; createdAt: Date }> = [];
         if (user?.wallet) {
             const ledgerEntries = await this.prisma.walletLedger.findMany({
                 where: {
