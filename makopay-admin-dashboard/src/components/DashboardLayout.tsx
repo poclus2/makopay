@@ -5,6 +5,7 @@ import DepositsPage from '../pages/DepositsPage'
 import UsersPage from '../pages/UsersPage'
 import PlansPage from '../pages/PlansPage'
 import ProductsPage from '../pages/ProductsPage'
+import InvestmentsPage from '../pages/InvestmentsPage'
 import { SettingsPage } from '../pages/Settings'
 import SupportPage from '../pages/SupportPage'
 
@@ -14,7 +15,7 @@ interface DashboardLayoutProps {
 
 import WithdrawalsPage from '../pages/WithdrawalsPage'
 
-type Page = 'dashboard' | 'deposits' | 'withdrawals' | 'users' | 'plans' | 'products' | 'settings' | 'support'
+type Page = 'dashboard' | 'deposits' | 'withdrawals' | 'users' | 'plans' | 'products' | 'investments' | 'settings' | 'support'
 
 export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
     const [currentPage, setCurrentPage] = useState<Page>('dashboard')
@@ -27,6 +28,7 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
         { name: 'Utilisateurs', page: 'users' as Page, icon: Users },
         { name: 'Plans', page: 'plans' as Page, icon: TrendingUp },
         { name: 'Produits', page: 'products' as Page, icon: Package },
+        { name: 'Investissements', page: 'investments' as Page, icon: TrendingUp },
         { name: 'Support', page: 'support' as Page, icon: MessageCircle },
         { name: 'Paramètres', page: 'settings' as Page, icon: Settings },
     ]
@@ -45,6 +47,8 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
                 return <PlansPage />
             case 'products':
                 return <ProductsPage />
+            case 'investments':
+                return <InvestmentsPage />
             case 'settings':
                 return <SettingsPage />
             case 'support':

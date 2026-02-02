@@ -39,4 +39,18 @@ export class InvestmentsController {
     myInvestments(@Request() req: any) {
         return this.investmentsService.findAllInvestments(req.user.userId);
     }
+
+    @Get('admin/all')
+    @Roles(UserRole.ADMIN)
+    getAllInvestments(@Request() req: any) {
+        const search = req.query.search || '';
+        const status = req.query.status;
+        return this.investmentsService.findAllInvestmentsAdmin(search, status);
+    }
+
+    @Get('admin/stats')
+    @Roles(UserRole.ADMIN)
+    getInvestmentStats() {
+        return this.investmentsService.getInvestmentStats();
+    }
 }

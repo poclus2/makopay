@@ -76,6 +76,61 @@ export class InvestmentsService {
         });
     }
 
+    async findAllInvestmentsAdmin(search?: string, status?: string) {
+        const where: any = { deletedAt: null };
+
+        if (status) {
+            where.status = status;
+        }
+
+        if (search && search.trim()) {
+            where.OR = [
+                { user: { firstName: { contains: search, mode: 'insensitive' } } },
+                { user: { lastName: { contains: search, mode: 'insensitive' } } },
+                { user: { referralCode: { contains: search, mode: 'insensitive' } } },
+            ];
+        }
+
+        return this.prisma.investment.findMany({
+            where,
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                        referralCode: true,
+                    }
+                },
+                plan: true,
+                payouts: true,
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    async getInvestmentStats() {
+        const [active, completed, totalVolumeResult] = await Promise.all([
+            this.prisma.investment.count({
+                where: { status: InvestmentStatus.ACTIVE, deletedAt: null }
+            }),
+            this.prisma.investment.count({
+                where: { status: InvestmentStatus.COMPLETED, deletedAt: null }
+            }),
+            this.prisma.investment.aggregate({
+                where: { deletedAt: null },
+                _sum: { principalAmount: true }
+            })
+        ]);
+
+        return {
+            activeCount: active,
+            completedCount: completed,
+            totalVolume: totalVolumeResult._sum.principalAmount || 0,
+        };
+    }
+
     async createInvestmentFromOrder(orderId: string, userId: string, items: any[], tx?: Prisma.TransactionClient) {
         const client = tx || this.prisma;
         this.logger.log(`Checking for investment products in order ${orderId}`);
