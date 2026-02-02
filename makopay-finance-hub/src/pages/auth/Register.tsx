@@ -52,7 +52,7 @@ const Register = () => {
     const handleNext = () => {
         if (currentStep < 3) {
             if (currentStep === 1) {
-                if (!formData.fullName || !formData.phoneNumber || !formData.password) {
+                if (!formData.fullName || !phoneNumber || !formData.password) {
                     toast.error(t('auth.fillIdentityFields'));
                     return;
                 }
