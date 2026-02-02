@@ -22,7 +22,7 @@ export class MlmService {
     ) { }
 
     async getNetwork(userId: string) {
-        return this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: userId },
             include: {
                 referrals: {
@@ -40,6 +40,17 @@ export class MlmService {
                                 firstName: true,
                                 lastName: true,
                                 kycStatus: true,
+                                createdAt: true,
+                                referrals: {
+                                    select: {
+                                        id: true,
+                                        email: true,
+                                        firstName: true,
+                                        lastName: true,
+                                        kycStatus: true,
+                                        createdAt: true,
+                                    }
+                                }
                             }
                         }
                     }
@@ -51,9 +62,39 @@ export class MlmService {
                         firstName: true,
                         lastName: true
                     }
+                },
+                wallet: {
+                    select: {
+                        id: true
+                    }
                 }
             }
         });
+
+        // Fetch MLM commissions from wallet ledger
+        let commissionsReceived = [];
+        if (user?.wallet) {
+            const ledgerEntries = await this.prisma.walletLedger.findMany({
+                where: {
+                    walletId: user.wallet.id,
+                    type: WalletTransactionType.MLM_COMMISSION,
+                    status: 'COMPLETED'
+                },
+                select: {
+                    amount: true,
+                    createdAt: true,
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            });
+            commissionsReceived = ledgerEntries;
+        }
+
+        return {
+            ...user,
+            commissionsReceived
+        };
     }
 
     // Renamed logic method
