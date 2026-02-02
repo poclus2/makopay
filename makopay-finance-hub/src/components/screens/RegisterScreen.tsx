@@ -17,6 +17,8 @@ export const RegisterScreen = ({ onComplete, onBack }: RegisterScreenProps) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [countryCode, setCountryCode] = useState('+237'); // Cameroun par défaut
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'fr' ? 'en' : 'fr';
@@ -130,8 +132,47 @@ export const RegisterScreen = ({ onComplete, onBack }: RegisterScreenProps) => {
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
+                </button>              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-caption text-muted-foreground">{t('auth.phoneNumber', 'Phone Number')}</label>
+              <div className="flex gap-2">
+                {/* Country Code Selector */}
+                <div className="w-32">
+                  <select
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    className="w-full px-3 py-3 rounded-xl bg-muted/30 border border-border/20 text-foreground focus:outline-none focus:border-primary/50 transition-colors appearance-none text-sm"
+                  >
+                    <option value="+237">???? +237</option>
+                    <option value="+225">???? +225</option>
+                    <option value="+221">? +221</option>
+                    <option value="+33"> +33</option>
+                    <option value="+32"> +32</option>
+                  </select>
+                </div>
+                
+                {/* Phone Number Input */}
+                <div className="flex-1">
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, ''); // Only digits
+                      if (value.length <= 9) {
+                        setPhoneNumber(value);
+                      }
+                    }}
+                    placeholder="699000000"
+                    maxLength={9}
+                    className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border/20 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors"
+                  />
+                </div>
               </div>
+              <p className="text-xxs text-muted-foreground">
+                {t('auth.phoneFullNumber', 'Full number')}: {countryCode}{phoneNumber || '699000000'}
+              </p>
             </div>
 
             <div className="space-y-2">
