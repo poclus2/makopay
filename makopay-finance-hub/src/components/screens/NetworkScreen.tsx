@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { Search, Users, ChevronRight, Loader2, TrendingUp, Wallet, Clock } from 'lucide-react';
+import { Search, Users, ChevronRight, Loader2, TrendingUp, Wallet, Clock, Share2, Copy } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -226,6 +226,29 @@ export const NetworkScreen = () => {
         <p className="text-xxs text-muted-foreground mt-1">{t('network.shareReferralCode')}</p>
       </GlassCard>
 
+      {/* Share Referral Link */}
+      <GlassCard variant="solid" className="mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <p className="text-caption text-muted-foreground mb-1">{t('network.shareLink')}</p>
+            <p className="text-xs text-muted-foreground">{t('network.inviteFriends')}</p>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              const link = `${window.location.origin}/auth/register?ref=${networkData.referralCode}`;
+              navigator.clipboard.writeText(link);
+              toast.success(t('network.linkCopied'));
+            }}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-primary-foreground font-semibold flex items-center gap-2 shadow-[0_4px_15px_hsl(165_86%_56%/0.4)]"
+          >
+            <Share2 className="w-4 h-4" />
+            {t('network.share')}
+          </motion.button>
+        </div>
+      </GlassCard>
+
       {/* Team Section */}
       <div className="space-y-4 mb-6">
         <div className="flex items-center justify-between">
@@ -332,7 +355,7 @@ export const NetworkScreen = () => {
                       </div>
                     </div>
                   </div>
-                  <p className="text-body font-bold text-primary tabular-nums">+€{commission.amount.toFixed(2)}</p>
+                  <p className="text-body font-bold text-primary tabular-nums">+{formatCurrency(commission.amount)}</p>
                 </GlassCard>
               </motion.div>
             ))}

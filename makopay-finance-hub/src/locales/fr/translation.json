@@ -235,7 +235,11 @@
         "joined": "Inscrit le",
         "sales": "Ventes",
         "commissionEarned": "Commission Gagnée",
-        "viewTree": "Voir l'arbre"
+        "viewTree": "Voir l'arbre",
+        "shareLink": "Lien de Parrainage",
+        "inviteFriends": "Invitez vos amis et gagnez des commissions",
+        "share": "Partager",
+        "linkCopied": "Lien copié dans le presse-papier !"
     },
     "notifications": {
         "title": "Notifications",

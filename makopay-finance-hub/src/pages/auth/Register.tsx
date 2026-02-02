@@ -1,10 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     ArrowLeft, ArrowRight, User, Phone, Lock, Globe,
     Users, QrCode, FileCheck, CheckCircle, Loader2, Eye, EyeOff, Mail
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +24,15 @@ const Register = () => {
     const [phoneNumber, setPhoneNumber] = useState('');
     const navigate = useNavigate();
     const { t } = useTranslation();
+    const [searchParams] = useSearchParams();
+
+    // Pre-fill referral code from URL parameter
+    useEffect(() => {
+        const refCode = searchParams.get('ref');
+        if (refCode) {
+            setFormData(prev => ({ ...prev, sponsorId: refCode }));
+        }
+    }, [searchParams]);
 
     // Form data
     const [formData, setFormData] = useState({
