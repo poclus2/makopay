@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api'
 import { format } from 'date-fns'
-import { Search, User as UserIcon, X, Loader2 } from 'lucide-react'
+import { Search, User as UserIcon, X, Loader2, Trash2, AlertTriangle } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { AnimatePresence, motion } from 'framer-motion'
 
 interface User {
     id: string
@@ -21,6 +22,23 @@ interface User {
 
 export default function UsersPage() {
     const [searchTerm, setSearchTerm] = useState('')
+    const [userToDelete, setUserToDelete] = useState<User | null>(null)
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const queryClient = useQueryClient()
+
+    const handleDeleteUser = async () => {
+        if (!userToDelete) return
+
+        try {
+            await api.delete(`/users/${userToDelete.id}/full`)
+            toast.success('Utilisateur supprimé avec succès')
+            queryClient.invalidateQueries({ queryKey: ['users'] })
+            setIsDeleteModalOpen(false)
+            setUserToDelete(null)
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Erreur lors de la suppression')
+        }
+    }
 
     const { data: users, isLoading, error } = useQuery<User[]>({
         queryKey: ['users'],
@@ -84,6 +102,7 @@ export default function UsersPage() {
                                 <th className="p-4 text-sm font-semibold text-slate-600">Téléphone</th>
                                 <th className="p-4 text-sm font-semibold text-slate-600">Solde</th>
                                 <th className="p-4 text-sm font-semibold text-slate-600">Inscrit le</th>
+                                <th className="p-4 text-sm font-semibold text-slate-600 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
@@ -114,8 +133,8 @@ export default function UsersPage() {
                                     <td className="p-4 text-slate-500 text-sm">
                                         {format(new Date(user.createdAt), 'PPP')}
                                     </td>
-                                    <td className="p-4 text-right">
-                                        {/* KYC Modal temporarily disabled */}
+                                    <td className="p-4 text-right flex items-center justify-end gap-2">
+                                        {/* KYC Status Badge */}
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.kycStatus === 'VERIFIED' ? 'bg-green-100 text-green-700' :
                                             user.kycStatus === 'REJECTED' ? 'bg-red-100 text-red-700' :
                                                 user.kycStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
@@ -123,12 +142,24 @@ export default function UsersPage() {
                                             }`}>
                                             {user.kycStatus || 'Non soumis'}
                                         </span>
+
+                                        {/* Delete Button */}
+                                        <button
+                                            onClick={() => {
+                                                setUserToDelete(user)
+                                                setIsDeleteModalOpen(true)
+                                            }}
+                                            className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors"
+                                            title="Supprimer l'utilisateur"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
                             {filteredUsers?.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="p-12 text-center text-slate-400">
+                                    <td colSpan={6} className="p-12 text-center text-slate-400">
                                         <div className="flex flex-col items-center justify-center space-y-3">
                                             <UserIcon className="h-12 w-12 opacity-20" />
                                             <p>Aucun utilisateur trouvé</p>
@@ -140,6 +171,55 @@ export default function UsersPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+                {isDeleteModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden"
+                        >
+                            <div className="p-6">
+                                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4 mx-auto">
+                                    <AlertTriangle className="w-6 h-6 text-red-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-center text-slate-800 mb-2">
+                                    Supprimer {userToDelete?.firstName} ?
+                                </h3>
+                                <div className="text-center text-slate-600 mb-6 space-y-2">
+                                    <p>Cette action est <span className="font-bold text-red-600">irréversible</span>. Elle supprimera :</p>
+                                    <ul className="text-sm text-left list-disc pl-8 space-y-1 bg-red-50 p-3 rounded-lg border border-red-100">
+                                        <li>Le compte utilisateur et ses données</li>
+                                        <li>Toutes les transactions et investissements</li>
+                                        <li>L'historique des commandes</li>
+                                    </ul>
+                                    <p className="text-xs text-slate-500 mt-2">
+                                        Note : Ses filleuls seront automatiquement transférés à son parrain (compression MLM).
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => setIsDeleteModalOpen(false)}
+                                        className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200 transition-colors"
+                                    >
+                                        Annuler
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteUser}
+                                        className="flex-1 px-4 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20"
+                                    >
+                                        Supprimer DÉFINITIVEMENT
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }
