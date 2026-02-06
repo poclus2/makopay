@@ -1,7 +1,7 @@
 import { Processor, Process } from '@nestjs/bull';
-import { Job } from 'bull';
+import type { Job } from 'bull';
 import { Logger } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../core/database/prisma/prisma.service';
 import { ResendService } from '../providers/resend.service';
 import { replaceVariables } from '../utils/message-variables.util';
 

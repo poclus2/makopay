@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import type { Queue } from 'bull';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { Campaign, CampaignType, TargetType, User, Prisma, Template, CampaignRecipient } from '@prisma/client';

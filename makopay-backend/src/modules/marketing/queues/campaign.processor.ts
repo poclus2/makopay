@@ -1,9 +1,8 @@
 import { Processor, Process } from '@nestjs/bull';
-import { Job } from 'bull';
+import type { Job, Queue } from 'bull';
 import { Logger } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../core/database/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
 
 @Processor('campaign')
 export class CampaignProcessor {
