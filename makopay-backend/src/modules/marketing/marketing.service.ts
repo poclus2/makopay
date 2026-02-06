@@ -1,4 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { Campaign, CampaignType, TargetType, User, Prisma, Template, CampaignRecipient } from '@prisma/client';
@@ -26,6 +28,7 @@ export class MarketingService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly notificationsService: NotificationsService,
+        @InjectQueue('campaign') private campaignQueue: Queue,
     ) { }
 
     // ===========================
@@ -200,16 +203,9 @@ export class MarketingService {
             await this.createRecipients(campaign);
         }
 
-        // Update campaign status
-        await this.prisma.campaign.update({
-            where: { id },
-            data: {
-                status: 'SENDING',
-                sentAt: new Date(),
-            },
-        });
+        // Add to BullMQ campaign queue
+        await this.campaignQueue.add('send-campaign', { campaignId: id });
 
-        // TODO: Send to BullMQ queue in Phase 2
         this.logger.log(`Campaign ${id} queued for sending (${recipientsCount} recipients)`);
     }
 
