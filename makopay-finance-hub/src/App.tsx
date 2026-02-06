@@ -10,6 +10,8 @@ import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import VerifyPhone from "./pages/auth/VerifyPhone";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import { SupportProvider } from "@/contexts/SupportContext";
@@ -33,6 +35,8 @@ const App = () => (
                   <Route path="/auth/login" element={<Login />} />
                   <Route path="/auth/register" element={<Register />} />
                   <Route path="/auth/verify-phone" element={<VerifyPhone />} />
+                  <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/auth/reset-password" element={<ResetPassword />} />
 
                   <Route element={<ProtectedRoute />}>
                     <Route path="/dashboard" element={<Index />} />

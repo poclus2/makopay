@@ -264,4 +264,70 @@ export class AuthService {
 
         return true;
     }
+
+    async forgotPassword(phoneNumber: string): Promise<{ message: string }> {
+        const user = await this.usersService.findOne(phoneNumber);
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        // Generate OTP
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        await this.usersService.update(user.id, {
+            otpCode,
+            otpExpiresAt,
+        });
+
+        // Send OTP via SMS
+        try {
+            await this.notificationsService.sendSms(
+                user.phoneNumber,
+                `Votre code de réinitialisation MakoPay est: ${otpCode}. Valide pendant 10 minutes.`,
+                true
+            );
+        } catch (error) {
+            console.error('Failed to send reset password OTP SMS', error);
+            throw new BadRequestException('Failed to send SMS');
+        }
+
+        return { message: 'Verification code sent successfully' };
+    }
+
+    async resetPassword(phoneNumber: string, otpCode: string, newPassword: string): Promise<{ message: string }> {
+        const user = await this.usersService.findOne(phoneNumber);
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        // Validate OTP
+        if (!user.otpCode || user.otpCode !== otpCode) {
+            throw new BadRequestException('Invalid verification code');
+        }
+
+        if (user.otpExpiresAt && user.otpExpiresAt < new Date()) {
+            throw new BadRequestException('Verification code expired');
+        }
+
+        // Hash new password
+        const hashedPassword = await argon2.hash(newPassword);
+
+        // Update password and clear OTP
+        await this.usersService.update(user.id, {
+            passwordHash: hashedPassword,
+            otpCode: null,
+            otpExpiresAt: null,
+        });
+
+        // Send security notification
+        await this.notificationsService.createInAppNotification(
+            user.id,
+            'Security Alert',
+            'Your password has been reset successfully.',
+            'WARNING'
+        );
+
+        return { message: 'Password reset successfully' };
+    }
 }

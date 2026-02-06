@@ -4,6 +4,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -46,5 +48,15 @@ export class AuthController {
     @Post('change-password')
     async changePassword(@Req() req: any, @Body() dto: ChangePasswordDto) {
         return this.authService.changePassword(req.user.id, dto);
+    }
+
+    @Post('forgot-password')
+    async forgotPassword(@Body() dto: ForgotPasswordDto) {
+        return this.authService.forgotPassword(dto.phoneNumber);
+    }
+
+    @Post('reset-password')
+    async resetPassword(@Body() dto: ResetPasswordDto) {
+        return this.authService.resetPassword(dto.phoneNumber, dto.otpCode, dto.newPassword);
     }
 }
