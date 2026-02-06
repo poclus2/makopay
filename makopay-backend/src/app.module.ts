@@ -20,6 +20,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { PaymentEnvironmentGuard } from './core/guards/payment-environment.guard';
 import { SettingsModule } from './modules/settings/settings.module';
+import { MarketingModule } from './modules/marketing/marketing.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { SettingsModule } from './modules/settings/settings.module';
     NotificationsModule,
     SupportModule,
     SettingsModule,
+    MarketingModule,
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
