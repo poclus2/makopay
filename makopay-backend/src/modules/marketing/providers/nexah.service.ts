@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 @Injectable()
 export class NexahService {
     private readonly logger = new Logger(NexahService.name);
-    private readonly apiUrl = process.env.NEXAH_API_URL || 'https://api.nexah.net/v1';
+    private readonly apiUrl = process.env.NEXAH_API_URL || 'https://api.nexah.net/api/v1';
     private readonly apiKey = process.env.NEXAH_API_KEY;
     private readonly senderId = process.env.NEXAH_SENDER_ID || 'MAKOPAY';
 
