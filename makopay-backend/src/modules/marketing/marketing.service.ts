@@ -93,6 +93,49 @@ export class MarketingService {
             },
         });
 
+        // Handle CSV import if provided
+        if (campaign.targetType === TargetType.CUSTOM_LIST && dto.csvContent) {
+            try {
+                const buffer = Buffer.from(dto.csvContent, 'utf-8');
+                const rows = await parseCsv(buffer);
+                const uniqueRecipients = extractUniqueRecipients(rows);
+
+                if (uniqueRecipients.length > 0) {
+                    const recipientsData = uniqueRecipients.map(r => ({
+                        campaignId: campaign.id,
+                        phoneNumber: r.phoneNumber,
+                        email: r.email,
+                        variables: {
+                            firstName: r.firstName,
+                            lastName: r.lastName,
+                        } as any,
+                        status: 'PENDING',
+                    }));
+
+                    await this.prisma.campaignRecipient.createMany({
+                        data: recipientsData as any,
+                    });
+
+                    // Update total recipients count
+                    await this.prisma.campaign.update({
+                        where: { id: campaign.id },
+                        data: { totalRecipients: uniqueRecipients.length },
+                    });
+
+                    campaign.totalRecipients = uniqueRecipients.length;
+                    this.logger.log(`Imported ${uniqueRecipients.length} recipients from CSV for campaign ${campaign.id}`);
+                }
+            } catch (error) {
+                this.logger.error(`Failed to process CSV for campaign ${campaign.id}`, error);
+                // Non-blocking error? Or should we throw?
+                // If we fail to import, the campaign will have 0 recipients.
+                // Better to throw so the user knows.
+                // But we already created the campaign.
+                // Let's update status to FAILED or just throw.
+                throw new BadRequestException(`CSV processing failed: ${error.message}`);
+            }
+        }
+
         if (campaign.sendNow) {
             try {
                 await this.sendCampaign(campaign.id);

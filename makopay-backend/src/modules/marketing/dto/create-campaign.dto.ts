@@ -67,6 +67,10 @@ export class CreateCampaignDto {
     @IsOptional()
     customListUrl?: string;
 
+    @IsString()
+    @IsOptional()
+    csvContent?: string;
+
     @IsBoolean()
     @IsOptional()
     sendNow?: boolean = true;

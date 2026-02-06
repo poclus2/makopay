@@ -19,6 +19,7 @@ interface WizardState {
     targetType: TargetType
     filters: UserFilters
     csvFile: string | null
+    csvContent?: string
     subject: string
     message: string
     sendNow: boolean
@@ -77,6 +78,15 @@ export default function CampaignWizard({ onClose }: CampaignWizardProps) {
         },
     })
 
+    const handleFileSelect = async (file: File) => {
+        const text = await file.text()
+        setFormData(prev => ({
+            ...prev,
+            csvFile: file.name,
+            csvContent: text
+        }))
+    }
+
     const handleTemplateSelect = (templateId: string) => {
         const template = templates?.find((t: any) => t.id === templateId)
         if (template) {
@@ -100,6 +110,10 @@ export default function CampaignWizard({ onClose }: CampaignWizardProps) {
             toast.error('Le message est requis')
             return
         }
+        if (formData.targetType === 'CUSTOM_LIST' && !formData.csvContent) {
+            toast.error('Veuillez importer un fichier CSV valide')
+            return
+        }
 
         const payload = {
             name: formData.name,
@@ -107,6 +121,7 @@ export default function CampaignWizard({ onClose }: CampaignWizardProps) {
             templateId: formData.templateId || undefined,
             targetType: formData.targetType,
             filters: formData.targetType === 'FILTERED' ? formData.filters : undefined,
+            csvContent: formData.targetType === 'CUSTOM_LIST' ? formData.csvContent : undefined,
             // For CSV, we'd need to handle upload or text. For now, sending basic info.
             subject: formData.type === 'EMAIL' ? formData.subject : undefined,
             message: formData.message,
@@ -172,8 +187,8 @@ export default function CampaignWizard({ onClose }: CampaignWizardProps) {
                                         type="button"
                                         onClick={() => setFormData({ ...formData, type: 'SMS' })}
                                         className={`p-4 border-2 rounded-xl text-left transition-all ${formData.type === 'SMS'
-                                                ? 'border-black bg-slate-50'
-                                                : 'border-slate-200 hover:border-slate-300'
+                                            ? 'border-black bg-slate-50'
+                                            : 'border-slate-200 hover:border-slate-300'
                                             }`}
                                     >
                                         <div className="font-semibold text-lg mb-1">SMS</div>
@@ -183,8 +198,8 @@ export default function CampaignWizard({ onClose }: CampaignWizardProps) {
                                         type="button"
                                         onClick={() => setFormData({ ...formData, type: 'EMAIL' })}
                                         className={`p-4 border-2 rounded-xl text-left transition-all ${formData.type === 'EMAIL'
-                                                ? 'border-black bg-slate-50'
-                                                : 'border-slate-200 hover:border-slate-300'
+                                            ? 'border-black bg-slate-50'
+                                            : 'border-slate-200 hover:border-slate-300'
                                             }`}
                                     >
                                         <div className="font-semibold text-lg mb-1">Email</div>
@@ -222,8 +237,8 @@ export default function CampaignWizard({ onClose }: CampaignWizardProps) {
                                         type="button"
                                         onClick={() => setFormData({ ...formData, targetType: option.id as TargetType })}
                                         className={`p-4 border-2 rounded-xl text-left transition-all ${formData.targetType === option.id
-                                                ? 'border-black bg-slate-50'
-                                                : 'border-slate-200 hover:border-slate-300'
+                                            ? 'border-black bg-slate-50'
+                                            : 'border-slate-200 hover:border-slate-300'
                                             }`}
                                     >
                                         <div className="font-semibold text-sm mb-1">{option.label}</div>
@@ -241,7 +256,7 @@ export default function CampaignWizard({ onClose }: CampaignWizardProps) {
 
                             {formData.targetType === 'CUSTOM_LIST' && (
                                 <CsvUploader
-                                    onFileSelect={file => setFormData({ ...formData, csvFile: file })}
+                                    onFileSelect={handleFileSelect}
                                 />
                             )}
 
