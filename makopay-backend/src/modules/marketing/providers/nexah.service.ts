@@ -1,13 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { detectCameroonOperator, getNexahSenderId, normalizePhoneNumber } from '../../notifications/utils/cameroon-operator.util';
 
 @Injectable()
 export class NexahService {
     private readonly logger = new Logger(NexahService.name);
-    private readonly apiUrl = process.env.NEXAH_API_URL || 'https://api.nexah.net/api/v1';
-    private readonly apiKey = process.env.NEXAH_API_KEY;
-    private readonly senderId = process.env.NEXAH_SENDER_ID || 'MAKOPAY';
+    // Use the URL that works in the test script
+    private readonly apiUrl = process.env.NEXAH_API_URL || 'https://smsvas.com/bulk/public/index.php/api/v1';
+    private readonly user = process.env.NEXAH_USER;
+    private readonly password = process.env.NEXAH_PASSWORD;
 
     constructor(private readonly httpService: HttpService) { }
 
@@ -17,35 +19,69 @@ export class NexahService {
         error?: string;
     }> {
         try {
-            // Format phone number for Nexah (remove +, keep 237xxxxxxxxx)
-            const formattedPhone = to.replace('+', '');
+            // 1. Normalize phone number
+            const normalizedPhone = normalizePhoneNumber(to);
+            // The API expects just the number (e.g. 655867729) or full format? 
+            // Test script passes `test.number` (e.g. '237655867729').
+            // Let's ensure we send 237xxxxxxxxx if the input is compatible.
+            const phoneToSend = normalizedPhone.length === 9 ? `237${normalizedPhone}` : to.replace('+', '');
 
-            this.logger.log(`Sending SMS to ${formattedPhone} via Nexah`);
+            // 2. Detect operator and get Sender ID
+            const senderId = getNexahSenderId(phoneToSend);
+
+            this.logger.log(`Sending SMS to ${phoneToSend} via Nexah (Sender: ${senderId})`);
+
+            if (!this.user || !this.password) {
+                throw new Error('Nexah credentials not configured (NEXAH_USER, NEXAH_PASSWORD)');
+            }
 
             const response = await firstValueFrom(
                 this.httpService.post(
-                    `${this.apiUrl}/sms/send`,
+                    `${this.apiUrl}/sendsms`,
                     {
-                        to: formattedPhone,
-                        message,
-                        sender_id: this.senderId,
+                        user: this.user,
+                        password: this.password,
+                        senderid: senderId,
+                        sms: message,
+                        mobiles: phoneToSend,
                     },
                     {
                         headers: {
-                            'Authorization': `Bearer ${this.apiKey}`,
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
                         },
                     },
                 ),
             );
 
-            const { message_id } = response.data;
-            this.logger.log(`SMS sent successfully to ${formattedPhone}: ${message_id}`);
+            const data = response.data;
 
-            return {
-                success: true,
-                messageId: message_id,
-            };
+            // Check response code based on test script logic
+            if (data.responsecode === 1 && data.sms && data.sms.length > 0) {
+                const smsResult = data.sms[0];
+
+                if (smsResult.status === 'success') {
+                    this.logger.log(`SMS sent successfully to ${phoneToSend}: ${smsResult.messageid}`);
+                    return {
+                        success: true,
+                        messageId: smsResult.messageid,
+                    };
+                } else {
+                    const errorMsg = `${smsResult.errorcode} - ${smsResult.errordescription}`;
+                    this.logger.warn(`Nexah API returned error for ${phoneToSend}: ${errorMsg}`);
+                    return {
+                        success: false,
+                        error: errorMsg,
+                    };
+                }
+            } else {
+                const errorMsg = data.responsemessage || 'Unknown error';
+                this.logger.warn(`Nexah API Invalid Response: ${errorMsg}`);
+                return {
+                    success: false,
+                    error: errorMsg,
+                };
+            }
         } catch (error) {
             this.logger.error(
                 `Failed to send SMS to ${to}:`,
@@ -61,14 +97,23 @@ export class NexahService {
 
     async getBalance(): Promise<number> {
         try {
+            if (!this.user || !this.password) return 0;
+
             const response = await firstValueFrom(
-                this.httpService.get(`${this.apiUrl}/account/balance`, {
-                    headers: { Authorization: `Bearer ${this.apiKey}` },
+                this.httpService.post(`${this.apiUrl}/smscredit`,
+                    {
+                        user: this.user,
+                        password: this.password,
+                    }, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
                 }),
             );
 
-            const balance = response.data.balance || 0;
-            this.logger.log(`Nexah balance: ${balance} XAF`);
+            const balance = response.data.credit || 0;
+            this.logger.log(`Nexah balance: ${balance} SMS`);
             return balance;
         } catch (error) {
             this.logger.error('Failed to get Nexah balance:', error.message);
