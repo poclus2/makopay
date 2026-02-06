@@ -1,21 +1,31 @@
-import { Processor, Process } from '@nestjs/bull';
-import type { Job } from 'bull';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma/prisma.service';
 import { NexahService } from '../providers/nexah.service';
 import { replaceVariables } from '../utils/message-variables.util';
 
 @Processor('sms')
-export class SmsProcessor {
+export class SmsProcessor extends WorkerHost {
     private readonly logger = new Logger(SmsProcessor.name);
 
     constructor(
         private prisma: PrismaService,
         private nexahService: NexahService,
-    ) { }
+    ) {
+        super();
+    }
 
-    @Process('send-message')
-    async handleSmsSend(job: Job) {
+    async process(job: Job): Promise<any> {
+        switch (job.name) {
+            case 'send-message':
+                return this.handleSmsSend(job);
+            default:
+                throw new Error(`Unknown job ${job.name}`);
+        }
+    }
+
+    private async handleSmsSend(job: Job) {
         const { recipientId, message, user, campaignId } = job.data;
 
         try {

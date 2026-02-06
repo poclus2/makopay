@@ -1,21 +1,33 @@
-import { Processor, Process } from '@nestjs/bull';
-import type { Job, Queue } from 'bull';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Job, Queue } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma/prisma.service';
-import { InjectQueue } from '@nestjs/bull';
+import { InjectQueue } from '@nestjs/bullmq';
 
 @Processor('campaign')
-export class CampaignProcessor {
+export class CampaignProcessor extends WorkerHost {
     private readonly logger = new Logger(CampaignProcessor.name);
 
     constructor(
         private prisma: PrismaService,
         @InjectQueue('sms') private smsQueue: Queue,
         @InjectQueue('email') private emailQueue: Queue,
-    ) { }
+    ) {
+        super();
+    }
 
-    @Process('send-campaign')
-    async handleCampaignSend(job: Job<{ campaignId: string }>) {
+    async process(job: Job<any, any, string>): Promise<any> {
+        switch (job.name) {
+            case 'send-campaign':
+                return this.handleCampaignSend(job);
+            case 'check-completion':
+                return this.handleCampaignCompletion(job);
+            default:
+                throw new Error(`Unknown job ${job.name}`);
+        }
+    }
+
+    private async handleCampaignSend(job: Job<{ campaignId: string }>) {
         const { campaignId } = job.data;
         this.logger.log(`[Campaign ${campaignId}] Starting processing`);
 
@@ -91,8 +103,7 @@ export class CampaignProcessor {
     /**
      * Check if all recipients have been processed, then mark campaign as COMPLETED
      */
-    @Process('check-completion')
-    async handleCampaignCompletion(job: Job<{ campaignId: string }>) {
+    private async handleCampaignCompletion(job: Job<{ campaignId: string }>) {
         const { campaignId } = job.data;
 
         const recipients = await this.prisma.campaignRecipient.findMany({

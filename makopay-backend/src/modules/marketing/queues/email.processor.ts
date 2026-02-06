@@ -1,21 +1,31 @@
-import { Processor, Process } from '@nestjs/bull';
-import type { Job } from 'bull';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma/prisma.service';
 import { ResendService } from '../providers/resend.service';
 import { replaceVariables } from '../utils/message-variables.util';
 
 @Processor('email')
-export class EmailProcessor {
+export class EmailProcessor extends WorkerHost {
     private readonly logger = new Logger(EmailProcessor.name);
 
     constructor(
         private prisma: PrismaService,
         private resendService: ResendService,
-    ) { }
+    ) {
+        super();
+    }
 
-    @Process('send-message')
-    async handleEmailSend(job: Job) {
+    async process(job: Job): Promise<any> {
+        switch (job.name) {
+            case 'send-message':
+                return this.handleEmailSend(job);
+            default:
+                throw new Error(`Unknown job ${job.name}`);
+        }
+    }
+
+    private async handleEmailSend(job: Job) {
         const { recipientId, subject, message, user, campaignId } = job.data;
 
         try {
