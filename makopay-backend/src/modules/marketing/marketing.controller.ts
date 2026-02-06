@@ -11,7 +11,7 @@ import {
     Request,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { RolesGuard } from '../../core/decorators/roles/roles.guard';
+import { RolesGuard } from '../../core/guards/roles/roles.guard';
 import { Roles } from '../../core/decorators/roles/roles.decorator';
 import { UserRole, CampaignType } from '@prisma/client';
 import { MarketingService } from './marketing.service';
