@@ -10,16 +10,16 @@ import {
     UseGuards,
     Request,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../core/auth/guards/roles.guard';
-import { Roles } from '../../core/auth/decorators/roles.decorator';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '../../core/decorators/roles/roles.guard';
+import { Roles } from '../../core/decorators/roles/roles.decorator';
 import { UserRole, CampaignType } from '@prisma/client';
 import { MarketingService } from './marketing.service';
 import { CreateCampaignDto, FilterUsersDto } from './dto/create-campaign.dto';
 import { CreateTemplateDto, UpdateTemplateDto } from './dto/template.dto';
 
 @Controller('marketing')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles(UserRole.ADMIN)
 export class MarketingController {
     constructor(private readonly marketingService: MarketingService) { }
@@ -29,7 +29,7 @@ export class MarketingController {
     // ===========================
 
     @Post('campaigns')
-    async createCampaign(@Body() dto: CreateCampaignDto, @Request() req) {
+    async createCampaign(@Body() dto: CreateCampaignDto, @Request() req: any) {
         return this.marketingService.createCampaign(dto, req.user.userId);
     }
 
@@ -100,7 +100,7 @@ export class MarketingController {
     // ===========================
 
     @Post('templates')
-    async createTemplate(@Body() dto: CreateTemplateDto, @Request() req) {
+    async createTemplate(@Body() dto: CreateTemplateDto, @Request() req: any) {
         return this.marketingService.createTemplate(dto, req.user.userId);
     }
 

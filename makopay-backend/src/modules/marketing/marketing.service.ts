@@ -7,7 +7,7 @@ import { CreateTemplateDto, UpdateTemplateDto } from './dto/template.dto';
 import { renderUserTemplate, extractVariables } from './utils/template-renderer.util';
 import { parseCsv, validateCsvFormat, extractUniqueRecipients } from './utils/csv-parser.util';
 
-interface CampaignStats {
+export interface CampaignStats {
     totalRecipients: number;
     sentCount: number;
     deliveredCount: number;
@@ -262,7 +262,7 @@ export class MarketingService {
     // User Filtering
     // ===========================
 
-    async previewTargetedUsers(filters: FilterUsersDto): Promise<User[]> {
+    async previewTargetedUsers(filters: FilterUsersDto): Promise<Partial<User>[]> {
         const where = this.buildUserFilter(filters);
 
         return this.prisma.user.findMany({

@@ -12,7 +12,7 @@ export class InfobipSmsProvider implements ISmsProvider {
     private readonly logger = new Logger(InfobipSmsProvider.name);
     readonly name = 'Infobip';
 
-    constructor(private readonly infob ipProvider: InfobipProvider) { }
+    constructor(private readonly infobipProvider: InfobipProvider) { }
 
     /**
      * Infobip supporte tous les numéros (fallback global)

@@ -1,5 +1,6 @@
-import * as csvParser from 'csv-parser';
 import { Readable } from 'stream';
+
+const csvParser = require('csv-parser');
 
 export interface CsvRow {
     phoneNumber?: string;
@@ -49,7 +50,7 @@ export async function parseCsv(fileBuffer: Buffer): Promise<CsvRow[]> {
             .on('end', () => {
                 resolve(results);
             })
-            .on('error', (error) => {
+            .on('error', (error: any) => {
                 reject(error);
             });
     });
