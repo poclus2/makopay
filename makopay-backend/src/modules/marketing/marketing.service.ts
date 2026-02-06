@@ -93,6 +93,30 @@ export class MarketingService {
             },
         });
 
+        if (campaign.sendNow) {
+            try {
+                await this.sendCampaign(campaign.id);
+                // Reload status
+                return this.prisma.campaign.findUnique({
+                    where: { id: campaign.id },
+                    include: {
+                        template: true,
+                        creator: {
+                            select: {
+                                id: true,
+                                firstName: true,
+                                lastName: true,
+                                email: true,
+                            },
+                        },
+                    },
+                }) as Promise<Campaign>;
+            } catch (error) {
+                this.logger.error(`Failed to auto-send campaign ${campaign.id}:`, error);
+                // We return the campaign anyway, user can try sending again manually
+            }
+        }
+
         return campaign;
     }
 
