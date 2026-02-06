@@ -1,17 +1,30 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { detectCameroonOperator, getNexahSenderId, normalizePhoneNumber } from '../../notifications/utils/cameroon-operator.util';
 
 @Injectable()
 export class NexahService {
     private readonly logger = new Logger(NexahService.name);
-    // Use the URL that works in the test script
-    private readonly apiUrl = process.env.NEXAH_API_URL || 'https://smsvas.com/bulk/public/index.php/api/v1';
-    private readonly user = process.env.NEXAH_USER;
-    private readonly password = process.env.NEXAH_PASSWORD;
+    private readonly apiUrl: string;
+    private readonly user: string | undefined;
+    private readonly password: string | undefined;
 
-    constructor(private readonly httpService: HttpService) { }
+    constructor(
+        private readonly httpService: HttpService,
+        private readonly configService: ConfigService,
+    ) {
+        this.apiUrl = this.configService.get<string>('NEXAH_API_URL', 'https://smsvas.com/bulk/public/index.php/api/v1');
+        this.user = this.configService.get<string>('NEXAH_USER');
+        this.password = this.configService.get<string>('NEXAH_PASSWORD');
+
+        if (this.user && this.password) {
+            this.logger.log(`NexahService initialized with user: ${this.user}`);
+        } else {
+            this.logger.warn('NexahService initialized WITHOUT credentials (NEXAH_USER/NEXAH_PASSWORD missing)');
+        }
+    }
 
     async sendSms(to: string, message: string): Promise<{
         success: boolean;
