@@ -1,18 +1,23 @@
 import axios from 'axios';
+import { detectCameroonOperator, getNexahSenderId, CameroonOperator } from '../src/modules/notifications/utils/cameroon-operator.util';
 
 /**
- * NEXAH SMS API Test Script
- * Ce script teste l'envoi de SMS via NEXAH pour le Cameroun
+ * NEXAH SMS API Test Script - Version avec détection automatique
+ * Ce script teste l'envoi de SMS avec détection automatique d'opérateur
  */
 
 const NEXAH_CONFIG = {
     baseUrl: 'https://smsvas.com/bulk/public/index.php/api/v1',
     user: 'njoyaabdelazizthierry@gmail.com',
     password: 'Vykuj3546@',
-    senderId: 'InfoSMS',
 };
 
-const TEST_NUMBERS = ['237655867729'];
+const TEST_NUMBERS = [
+    { number: '237655867729', expected: 'ORANGE' },  // Orange (655)
+    { number: '237651702809', expected: 'MTN' },     // MTN (651)
+    { number: '237696519986', expected: 'ORANGE' },  // Orange (696)
+    { number: '237681233358', expected: 'MTN' },     // MTN (681)
+];
 
 interface NexahSendSmsResponse {
     responsecode: number;
@@ -71,110 +76,90 @@ async function testGetBalance(): Promise<void> {
 }
 
 /**
- * Test 2: Envoyer un SMS de test
+ * Test 2: Envoyer des SMS avec détection automatique d'opérateur
  */
-async function testSendSms(): Promise<void> {
-    console.log('\n📨 TEST 2: Envoi de SMS via NEXAH...');
+async function testSendSmsWithAutoDetection(): Promise<void> {
+    console.log('\n📨 TEST 2: Envoi de SMS avec détection automatique d\'opérateur...\n');
 
-    const testMessage = `Test MakoPay NEXAH SMS - ${new Date().toLocaleString('fr-FR')}`;
-    const mobiles = TEST_NUMBERS.join(',');
+    const testMessage = `Test MakoPay NEXAH AUTO - ${new Date().toLocaleString('fr-FR')}`;
+    let successCount = 0;
+    let failureCount = 0;
 
-    console.log(`📱 Numéros destinataires: ${mobiles}`);
-    console.log(`💬 Message: "${testMessage}"`);
+    for (const test of TEST_NUMBERS) {
+        console.log('─'.repeat(60));
+        console.log(`📱 Numéro: ${test.number}`);
 
-    try {
-        const response = await axios.post<NexahSendSmsResponse>(
-            `${NEXAH_CONFIG.baseUrl}/sendsms`,
-            {
-                user: NEXAH_CONFIG.user,
-                password: NEXAH_CONFIG.password,
-                senderid: NEXAH_CONFIG.senderId,
-                sms: testMessage,
-                mobiles: mobiles,
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                }
-            }
-        );
+        // Détection automatique de l'opérateur
+        const detectedOperator = detectCameroonOperator(test.number);
+        const senderId = getNexahSenderId(test.number);
 
-        console.log(`\n✅ Réponse de l'API:`);
-        console.log(`   Code: ${response.data.responsecode}`);
-        console.log(`   Description: ${response.data.responsedescription}`);
-        console.log(`   Message: ${response.data.responsemessage}`);
+        console.log(`🔍 Opérateur détecté: ${detectedOperator}`);
+        console.log(`📤 Sender ID sélectionné: ${senderId}`);
+        console.log(`✓ Attendu: ${test.expected}`);
 
-        if (response.data.sms && response.data.sms.length > 0) {
-            console.log(`\n📬 Détails des envois (${response.data.sms.length} SMS):`);
-            response.data.sms.forEach((sms, index) => {
-                console.log(`\n   SMS ${index + 1}:`);
-                console.log(`      📞 Numéro: ${sms.mobileno}`);
-                console.log(`      🆔 Message ID: ${sms.messageid}`);
-                console.log(`      🔖 Client ID: ${sms.smsclientid}`);
-                console.log(`      ✓ Status: ${sms.status}`);
-
-                if (sms.errorcode) {
-                    console.log(`      ❌ Error Code: ${sms.errorcode}`);
-                    console.log(`      ❌ Error: ${sms.errordescription}`);
-                }
-            });
-
-            const successCount = response.data.sms.filter(s => s.status === 'success').length;
-            const failureCount = response.data.sms.length - successCount;
-
-            console.log(`\n📊 Résumé: ${successCount} réussi(s), ${failureCount} échoué(s)`);
+        if (detectedOperator !== test.expected) {
+            console.warn(`⚠️  ATTENTION: Détection incorrecte! Attendu ${test.expected}, obtenu ${detectedOperator}`);
         }
 
-    } catch (error: any) {
-        console.error('❌ Erreur lors de l\'envoi du SMS:');
-        if (error.response) {
-            console.error('   Status:', error.response.status);
-            console.error('   Data:', JSON.stringify(error.response.data, null, 2));
-        } else {
-            console.error('   ', error.message);
-        }
-        throw error;
-    }
-}
+        try {
+            const response = await axios.post<NexahSendSmsResponse>(
+                `${NEXAH_CONFIG.baseUrl}/sendsms`,
+                {
+                    user: NEXAH_CONFIG.user,
+                    password: NEXAH_CONFIG.password,
+                    senderid: senderId,
+                    sms: testMessage,
+                    mobiles: test.number,
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    timeout: 10000,
+                }
+            );
 
-/**
- * Test 3: Tester l'envoi GET (alternative)
- */
-async function testSendSmsViaGet(): Promise<void> {
-    console.log('\n🔄 TEST 3: Envoi de SMS via GET (méthode alternative)...');
+            if (response.data.responsecode === 1 && response.data.sms && response.data.sms.length > 0) {
+                const smsResult = response.data.sms[0];
 
-    const testMessage = encodeURIComponent(`Test MakoPay GET - ${new Date().toLocaleString('fr-FR')}`);
-    const mobiles = TEST_NUMBERS[0]; // Un seul numéro pour ce test
-
-    const url = `${NEXAH_CONFIG.baseUrl}/sendsms?user=${encodeURIComponent(NEXAH_CONFIG.user)}&password=${encodeURIComponent(NEXAH_CONFIG.password)}&senderid=${NEXAH_CONFIG.senderId}&sms=${testMessage}&mobiles=${mobiles}`;
-
-    try {
-        const response = await axios.get<NexahSendSmsResponse>(url, {
-            headers: {
-                'Accept': 'application/json',
+                if (smsResult.status === 'success') {
+                    console.log(`✅ Envoi réussi`);
+                    console.log(`   🆔 Message ID: ${smsResult.messageid}`);
+                    console.log(`   🔖 Client ID: ${smsResult.smsclientid}`);
+                    successCount++;
+                } else {
+                    console.log(`❌ Envoi échoué: ${smsResult.errorcode} - ${smsResult.errordescription}`);
+                    failureCount++;
+                }
+            } else {
+                console.log(`❌ Réponse API invalide: ${response.data.responsemessage}`);
+                failureCount++;
             }
-        });
 
-        console.log('✅ Réponse GET:');
-        console.log(`   Code: ${response.data.responsecode}`);
-        console.log(`   Status: ${response.data.responsedescription}`);
+        } catch (error: any) {
+            console.log(`❌ Erreur réseau: ${error.message}`);
+            failureCount++;
+        }
 
-    } catch (error: any) {
-        console.error('❌ Erreur lors de l\'envoi GET:');
-        console.error('   ', error.response?.data || error.message);
+        // Pause entre chaque envoi
+        await new Promise(resolve => setTimeout(resolve, 1500));
     }
+
+    console.log('\n' + '='.repeat(60));
+    console.log(`📊 RÉSULTAT FINAL: ${successCount} succès, ${failureCount} échecs sur ${TEST_NUMBERS.length} envois`);
+    console.log('='.repeat(60));
 }
 
 /**
  * Fonction principale
  */
 async function main() {
-    console.log('🚀 NEXAH SMS API - Script de Test\n');
+    console.log('🚀 NEXAH SMS API - Test de Détection Automatique\n');
     console.log('='.repeat(60));
     console.log(`📍 API: ${NEXAH_CONFIG.baseUrl}`);
     console.log(`👤 User: ${NEXAH_CONFIG.user}`);
-    console.log(`📤 Sender ID: ${NEXAH_CONFIG.senderId}`);
+    console.log(`🧪 Numéros à tester: ${TEST_NUMBERS.length}`);
     console.log('='.repeat(60));
 
     try {
@@ -184,23 +169,13 @@ async function main() {
         // Pause de 2 secondes
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Test 2: Send SMS (POST)
-        await testSendSms();
+        // Test 2: Send SMS with auto detection
+        await testSendSmsWithAutoDetection();
 
-        // Pause de 2 secondes
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Test 3: Send SMS (GET) - Optionnel
-        // await testSendSmsViaGet();
-
-        console.log('\n' + '='.repeat(60));
-        console.log('✅ Tous les tests sont terminés avec succès !');
-        console.log('='.repeat(60) + '\n');
+        console.log('\n✅ Tous les tests sont terminés avec succès !\n');
 
     } catch (error) {
-        console.log('\n' + '='.repeat(60));
-        console.log('❌ Les tests ont échoué');
-        console.log('='.repeat(60) + '\n');
+        console.log('\n❌ Les tests ont échoué\n');
         process.exit(1);
     }
 }
