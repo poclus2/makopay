@@ -53,7 +53,7 @@ export class SmsProcessor {
                     where: { id: recipientId },
                     data: {
                         status: 'FAILED',
-                        errorMessage: result.error,
+                        error: result.error,
                     },
                 });
 
@@ -72,7 +72,7 @@ export class SmsProcessor {
                 where: { id: recipientId },
                 data: {
                     status: 'FAILED',
-                    errorMessage: error.message,
+                    error: error.message,
                 },
             });
 
