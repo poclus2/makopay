@@ -68,9 +68,13 @@ export default function CsvUploader({ onFileSelect }: CsvUploaderProps) {
         const parsed = lines.map(line => line.split(',').map(cell => cell.trim()))
 
         // Validate header
+        // Validate header (allow single column if valid)
         const header = parsed[0]
-        if (header.length < 2 || !header.includes('phone') && !header.includes('email')) {
-            setErrors(['Le fichier doit contenir au moins: phone ou email'])
+        const hasPhone = header.includes('phone') || header.includes('phoneNumber')
+        const hasEmail = header.includes('email')
+
+        if (!hasPhone && !hasEmail) {
+            setErrors(['Le fichier doit contenir au moins une colonne: phone, phoneNumber ou email'])
             return
         }
 
