@@ -310,13 +310,15 @@ export class MarketingService {
 
         if (filters.balanceMin !== undefined || filters.balanceMax !== undefined) {
             where.wallet = {
-                balance: {},
+                is: {
+                    balance: {},
+                },
             };
             if (filters.balanceMin !== undefined) {
-                where.wallet.balance.gte = filters.balanceMin;
+                (where.wallet.is as any).balance.gte = filters.balanceMin;
             }
             if (filters.balanceMax !== undefined) {
-                where.wallet.balance.lte = filters.balanceMax;
+                (where.wallet.is as any).balance.lte = filters.balanceMax;
             }
         }
 
