@@ -1,6 +1,9 @@
 import { Injectable, Logger, Inject, NotFoundException } from '@nestjs/common';
 import { EmailProvider } from './providers/email.provider';
 import { InfobipProvider } from './providers/infobip.provider';
+import { NexahSmsProvider } from './providers/nexah-sms.provider';
+import { InfobipSmsProvider } from './providers/infobip-sms.provider';
+import { ISmsProvider } from './interfaces/sms-provider.interface';
 import { NotificationSettingsService } from './notification-settings.service';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
 import { DepositReceivedTemplate } from './templates/email/deposit-received.template';
@@ -15,12 +18,22 @@ import { SupportReplyTemplate } from './templates/email/support-reply.template';
 export class NotificationsService {
     private readonly logger = new Logger(NotificationsService.name);
 
+    private readonly smsProviders: ISmsProvider[];
+
     constructor(
         private readonly emailProvider: EmailProvider,
-        private readonly smsProvider: InfobipProvider,
+        private readonly infobipProvider: InfobipProvider,
+        private readonly nexahSmsProvider: NexahSmsProvider,
+        private readonly infobipSmsProvider: InfobipSmsProvider,
         private readonly settingsService: NotificationSettingsService,
         private readonly prisma: PrismaService,
-    ) { }
+    ) {
+        // Ordre de priorité: NEXAH (Cameroun) → Infobip (Global)
+        this.smsProviders = [
+            this.nexahSmsProvider,
+            this.infobipSmsProvider,
+        ];
+    }
 
     async sendEmail(to: string, subject: string, html: string, force = false) {
         if (!force) {
@@ -41,7 +54,25 @@ export class NotificationsService {
                 return null;
             }
         }
-        return this.smsProvider.sendSms(to, message);
+
+        // Essayer chaque provider dans l'ordre de priorité
+        for (const provider of this.smsProviders) {
+            if (provider.supports(to)) {
+                this.logger.log(`Attempting SMS via ${provider.name} to ${to}`);
+                const result = await provider.sendSms(to, message, false);
+
+                if (result.success) {
+                    this.logger.log(`SMS sent successfully via ${provider.name}: ${result.messageId}`);
+                    return result;
+                } else {
+                    this.logger.warn(`${provider.name} failed: ${result.error}. Trying next provider...`);
+                }
+            }
+        }
+
+        // Si tous les providers échouent
+        this.logger.error(`All SMS providers failed for ${to}`);
+        return null;
     }
 
     async sendWhatsApp(to: string, message: string, force = false) {
@@ -52,7 +83,7 @@ export class NotificationsService {
                 return null;
             }
         }
-        return this.smsProvider.sendWhatsApp(to, message);
+        return this.infobipProvider.sendWhatsApp(to, message);
     }
 
     async sendOtp(to: string, code: string, channel: 'sms' | 'whatsapp' | 'email' = 'sms') {
