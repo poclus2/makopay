@@ -74,13 +74,21 @@ export class CampaignProcessor extends WorkerHost {
             const queue = campaign.type === 'SMS' ? this.smsQueue : this.emailQueue;
 
             for (const recipient of recipients) {
+                // For CUSTOM_LIST, recipient.user is null, so we build a pseudo-user from recipient fields
+                const userOrRecipient = recipient.user || {
+                    phoneNumber: recipient.phoneNumber,
+                    email: recipient.email,
+                    firstName: recipient.variables?.firstName,
+                    lastName: recipient.variables?.lastName,
+                };
+
                 await queue.add('send-message', {
                     recipientId: recipient.id,
                     campaignId: campaign.id,
                     type: campaign.type,
                     subject: campaign.subject,
                     message: campaign.message,
-                    user: recipient.user,
+                    user: userOrRecipient,
                 });
             }
 
