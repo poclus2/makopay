@@ -75,11 +75,12 @@ export class CampaignProcessor extends WorkerHost {
 
             for (const recipient of recipients) {
                 // For CUSTOM_LIST, recipient.user is null, so we build a pseudo-user from recipient fields
+                const variables = recipient.variables as any;
                 const userOrRecipient = recipient.user || {
                     phoneNumber: recipient.phoneNumber,
                     email: recipient.email,
-                    firstName: recipient.variables?.firstName,
-                    lastName: recipient.variables?.lastName,
+                    firstName: variables?.firstName,
+                    lastName: variables?.lastName,
                 };
 
                 await queue.add('send-message', {
