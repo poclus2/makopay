@@ -238,7 +238,9 @@ export class AuthService {
                 // Force email sending even if notifications are disabled (critical security)
                 await this.notificationsService.sendEmail(target, 'Verification Code', `<p>Your MakoPay verification code is: ${otpCode}. Do not share this code.</p>`, true);
             } else {
-                await this.notificationsService.sendOtp(target, otpCode, channel);
+                // Force SMS sending even if notifications are disabled (critical security)
+                const message = `Your MakoPay verification code is: ${otpCode}. Do not share this code.`;
+                await this.notificationsService.sendSms(target, message, true);
             }
         } catch (error) {
             console.error(`Failed to send withdrawal OTP via ${channel}`, error);
