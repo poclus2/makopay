@@ -239,8 +239,8 @@ export class AuthService {
                 await this.notificationsService.sendEmail(target, 'Verification Code', `<p>Your MakoPay verification code is: ${otpCode}. Do not share this code.</p>`, true);
             } else {
                 // Force SMS sending even if notifications are disabled (critical security)
-                // Reworded to avoid MTN content filtering on "verification code" keyword
-                const message = `Your MakoPay security code: ${otpCode}. Keep it private. Expires in 10min.`;
+                // Reworded to bypass MTN content filtering (confirmed working format)
+                const message = `Utilise le ${otpCode}`;
                 await this.notificationsService.sendSms(target, message, true);
             }
         } catch (error) {
