@@ -19,7 +19,7 @@ export class NexahSmsProvider implements ISmsProvider {
 
     constructor(private configService: ConfigService) {
         this.baseUrl = this.configService.get<string>('NEXAH_API_URL', 'https://smsvas.com/bulk/public/index.php/api/v1');
-        this.username = this.configService.get<string>('NEXAH_USERNAME', '');
+        this.username = this.configService.get<string>('NEXAH_USER', '');
         this.password = this.configService.get<string>('NEXAH_PASSWORD', '');
     }
 
