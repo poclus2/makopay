@@ -55,11 +55,14 @@ export class NotificationsService {
             }
         }
 
+        // Détecter si c'est un OTP (message contient "verification code")
+        const isOtp = message.toLowerCase().includes('verification code');
+
         // Essayer chaque provider dans l'ordre de priorité
         for (const provider of this.smsProviders) {
-            if (provider.supports(to)) {
+            if (provider.supports(to, isOtp)) {
                 this.logger.log(`Attempting SMS via ${provider.name} to ${to}`);
-                const result = await provider.sendSms(to, message, false);
+                const result = await provider.sendSms(to, message, isOtp);
 
                 if (result.success) {
                     this.logger.log(`SMS sent successfully via ${provider.name}: ${result.messageId}`);

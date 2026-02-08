@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { ISmsProvider, SmsResult } from '../interfaces/sms-provider.interface';
-import { isCameroonNumber, getNexahSenderId } from '../utils/cameroon-operator.util';
+import { isCameroonNumber, getNexahSenderId, detectCameroonOperator, CameroonOperator } from '../utils/cameroon-operator.util';
 
 /**
  * NEXAH SMS Provider
@@ -25,9 +25,22 @@ export class NexahSmsProvider implements ISmsProvider {
 
     /**
      * Vérifie si NEXAH supporte ce numéro (uniquement Cameroun)
+     * Note: MTN bloque les OTP avec sender ID "InfoSMS", donc on skip pour les OTP MTN
      */
-    supports(phoneNumber: string): boolean {
-        return isCameroonNumber(phoneNumber);
+    supports(phoneNumber: string, isOtp: boolean = false): boolean {
+        if (!isCameroonNumber(phoneNumber)) {
+            return false;
+        }
+
+        // Skip MTN pour les OTP car leur sender ID "InfoSMS" est bloqué pour les codes
+        if (isOtp) {
+            const operator = detectCameroonOperator(phoneNumber);
+            if (operator === CameroonOperator.MTN) {
+                return false; // Utiliser Infobip pour OTP MTN
+            }
+        }
+
+        return true;
     }
 
     /**

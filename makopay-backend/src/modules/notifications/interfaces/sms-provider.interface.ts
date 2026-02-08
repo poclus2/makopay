@@ -19,9 +19,10 @@ export interface ISmsProvider {
     /**
      * Vérifie si ce provider supporte un numéro donné
      * @param phoneNumber Numéro de téléphone
+     * @param isOtp Indique si c'est un code OTP (peut influencer le routage)
      * @returns true si le provider peut gérer ce numéro
      */
-    supports(phoneNumber: string): boolean;
+    supports(phoneNumber: string, isOtp?: boolean): boolean;
 }
 
 /**
