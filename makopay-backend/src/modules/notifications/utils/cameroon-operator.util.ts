@@ -81,15 +81,22 @@ export function detectCameroonOperator(phoneNumber: string): CameroonOperator {
  * Vérifie si un numéro est camerounais
  */
 export function isCameroonNumber(phoneNumber: string): boolean {
+    // Vérifier si le numéro contient le code pays Cameroun (+237 ou 237)
+    if (phoneNumber.includes('237')) {
+        return true;
+    }
+
+    // Normaliser et vérifier la longueur
     const normalized = normalizePhoneNumber(phoneNumber);
 
-    // Vérifier si commence par +237 ou 237 dans le numéro original
-    const hasCameroonPrefix = phoneNumber.includes('237');
+    // Accepter uniquement les numéros de 9 chiffres
+    if (normalized.length !== 9) {
+        return false;
+    }
 
-    // Ou vérifier si le préfixe correspond à un opérateur connu
+    // Vérifier si le préfixe correspond à un opérateur camerounais connu
     const operator = detectCameroonOperator(phoneNumber);
-
-    return hasCameroonPrefix || operator !== CameroonOperator.UNKNOWN;
+    return operator !== CameroonOperator.UNKNOWN;
 }
 
 /**
