@@ -208,7 +208,7 @@ export class AuthService {
 
         return { message: 'Password changed successfully' };
     }
-    async generateWithdrawalOtp(userId: string): Promise<{ channel: 'email' | 'sms', target: string }> {
+    async generateWithdrawalOtp(userId: string, preferredChannel?: 'email' | 'sms'): Promise<{ channel: 'email' | 'sms', target: string }> {
         const user = await this.usersService.findById(userId);
         if (!user) {
             throw new UnauthorizedException('User not found');
@@ -222,18 +222,24 @@ export class AuthService {
             otpExpiresAt,
         });
 
-        // Determine channel: "Pour les comptes ayant une adresse email, envoi le code a 6 chiffres sur leur addresses email."
+        // Determine channel: Default to SMS, allow email if explicitly requested
         let channel: 'email' | 'sms' = 'sms';
         let target = user.phoneNumber;
 
-        if (user.email) {
+        // Only use email if explicitly requested AND user has email
+        if (preferredChannel === 'email' && user.email) {
             channel = 'email';
             target = user.email;
         }
 
         // Send OTP
         try {
-            await this.notificationsService.sendOtp(target, otpCode, channel);
+            if (channel === 'email') {
+                // Force email sending even if notifications are disabled (critical security)
+                await this.notificationsService.sendEmail(target, 'Verification Code', `<p>Your MakoPay verification code is: ${otpCode}. Do not share this code.</p>`, true);
+            } else {
+                await this.notificationsService.sendOtp(target, otpCode, channel);
+            }
         } catch (error) {
             console.error(`Failed to send withdrawal OTP via ${channel}`, error);
             throw new BadRequestException(`Failed to send verification code via ${channel}`);

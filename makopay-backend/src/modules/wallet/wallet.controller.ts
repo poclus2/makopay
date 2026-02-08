@@ -20,8 +20,8 @@ export class WalletController {
     }
 
     @Post('withdraw/otp')
-    async withdrawOtp(@Request() req: any) {
-        return this.authService.generateWithdrawalOtp(req.user.userId);
+    async withdrawOtp(@Request() req: any, @Body() body?: { channel?: 'email' | 'sms' }) {
+        return this.authService.generateWithdrawalOtp(req.user.userId, body?.channel);
     }
 
     @Post('withdraw')
