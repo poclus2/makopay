@@ -59,7 +59,9 @@ export class NotificationsService {
         const isOtp = message.toLowerCase().includes('verification code');
 
         // Essayer chaque provider dans l'ordre de priorité
+        this.logger.debug(`Checking SMS providers for ${to}...`);
         for (const provider of this.smsProviders) {
+            this.logger.debug(`Checking ${provider.name}...`);
             if (provider.supports(to, isOtp)) {
                 this.logger.log(`Attempting SMS via ${provider.name} to ${to}`);
                 const result = await provider.sendSms(to, message, isOtp);
@@ -70,6 +72,8 @@ export class NotificationsService {
                 } else {
                     this.logger.warn(`${provider.name} failed: ${result.error}. Trying next provider...`);
                 }
+            } else {
+                this.logger.debug(`${provider.name} does not support ${to}`);
             }
         }
 

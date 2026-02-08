@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { ISmsProvider, SmsResult } from '../interfaces/sms-provider.interface';
-import { isCameroonNumber, getNexahSenderId, detectCameroonOperator, CameroonOperator } from '../utils/cameroon-operator.util';
+import { isCameroonNumber, getNexahSenderId, normalizePhoneNumber } from '../utils/cameroon-operator.util';
 
 /**
  * NEXAH SMS Provider
@@ -25,22 +25,11 @@ export class NexahSmsProvider implements ISmsProvider {
 
     /**
      * Vérifie si NEXAH supporte ce numéro (uniquement Cameroun)
-     * Note: MTN bloque les OTP avec sender ID "InfoSMS", donc on skip pour les OTP MTN
      */
     supports(phoneNumber: string, isOtp: boolean = false): boolean {
-        if (!isCameroonNumber(phoneNumber)) {
-            return false;
-        }
-
-        // Skip MTN pour les OTP car leur sender ID "InfoSMS" est bloqué pour les codes
-        if (isOtp) {
-            const operator = detectCameroonOperator(phoneNumber);
-            if (operator === CameroonOperator.MTN) {
-                return false; // Utiliser Infobip pour OTP MTN
-            }
-        }
-
-        return true;
+        const result = isCameroonNumber(phoneNumber);
+        this.logger.debug(`NEXAH supports check for ${phoneNumber}: ${result}`);
+        return result;
     }
 
     /**
@@ -56,10 +45,14 @@ export class NexahSmsProvider implements ISmsProvider {
             };
         }
 
-        // Détecter l'opérateur et choisir le bon sender ID
-        const senderId = getNexahSenderId(to);
+        // Normaliser le numéro de téléphone (comme NexahService)
+        const normalizedPhone = normalizePhoneNumber(to);
+        const phoneToSend = normalizedPhone.length === 9 ? `237${normalizedPhone}` : to.replace('+', '');
 
-        this.logger.log(`Sending SMS via NEXAH to ${to} with sender ID: ${senderId}`);
+        // Détecterl'opérateur et choisir le bon sender ID
+        const senderId = getNexahSenderId(phoneToSend);
+
+        this.logger.log(`Sending SMS via NEXAH to ${phoneToSend} with sender ID: ${senderId}`);
 
         try {
             const response = await axios.post(
@@ -69,7 +62,7 @@ export class NexahSmsProvider implements ISmsProvider {
                     password: this.password,
                     senderid: senderId,
                     sms: message,
-                    mobiles: to.replace('+', ''), // NEXAH accepte avec ou sans +
+                    mobiles: phoneToSend, // Numéro normalisé (237XXXXXXXXX)
                 },
                 {
                     headers: {
