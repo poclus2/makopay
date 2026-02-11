@@ -21,6 +21,6 @@ import { DatabaseModule } from '../../core/database/database.module';
         NexahSmsProvider,
         InfobipSmsProvider,
     ],
-    exports: [NotificationsService],
+    exports: [NotificationsService, NotificationSettingsService],
 })
 export class NotificationsModule { }

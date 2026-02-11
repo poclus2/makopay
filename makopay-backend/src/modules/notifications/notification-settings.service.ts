@@ -8,14 +8,16 @@ export class NotificationSettingsService {
     async getSettings() {
         const emailEnabled = await this.prisma.systemSetting.findUnique({ where: { key: 'notifications.email.enabled' } });
         const smsEnabled = await this.prisma.systemSetting.findUnique({ where: { key: 'notifications.sms.enabled' } });
+        const otpTemplate = await this.prisma.systemSetting.findUnique({ where: { key: 'notifications.sms.otpTemplate' } });
 
         return {
             emailEnabled: emailEnabled?.value === 'true',
             smsEnabled: smsEnabled?.value === 'true',
+            otpTemplate: otpTemplate?.value || 'Makopay : a utiliser le {code}',
         };
     }
 
-    async updateSettings(settings: { emailEnabled?: boolean; smsEnabled?: boolean }) {
+    async updateSettings(settings: { emailEnabled?: boolean; smsEnabled?: boolean; otpTemplate?: string }) {
         if (settings.emailEnabled !== undefined) {
             await this.prisma.systemSetting.upsert({
                 where: { key: 'notifications.email.enabled' },
@@ -29,6 +31,14 @@ export class NotificationSettingsService {
                 where: { key: 'notifications.sms.enabled' },
                 update: { value: String(settings.smsEnabled) },
                 create: { key: 'notifications.sms.enabled', value: String(settings.smsEnabled), description: 'Enable/Disable SMS Notifications' },
+            });
+        }
+
+        if (settings.otpTemplate !== undefined) {
+            await this.prisma.systemSetting.upsert({
+                where: { key: 'notifications.sms.otpTemplate' },
+                update: { value: settings.otpTemplate },
+                create: { key: 'notifications.sms.otpTemplate', value: settings.otpTemplate, description: 'Template for SMS OTP' },
             });
         }
 

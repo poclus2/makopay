@@ -7,6 +7,7 @@ import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { User } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationSettingsService } from '../notifications/notification-settings.service';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +15,7 @@ export class AuthService {
         private usersService: UsersService,
         private jwtService: JwtService,
         private notificationsService: NotificationsService,
+        private notificationSettingsService: NotificationSettingsService,
     ) { }
 
     async register(registerDto: RegisterDto): Promise<any> {
@@ -239,8 +241,10 @@ export class AuthService {
                 await this.notificationsService.sendEmail(target, 'Verification Code', `<p>Your MakoPay verification code is: ${otpCode}. Do not share this code.</p>`, true);
             } else {
                 // Force SMS sending even if notifications are disabled (critical security)
-                // Reworded to bypass MTN content filtering (confirmed working format)
-                const message = `Makopay : a utiliser le ${otpCode}`;
+                // Use template from settings or fallback to default
+                const settings = await this.notificationSettingsService.getSettings();
+                const template = settings.otpTemplate || 'Makopay : a utiliser le {code}';
+                const message = template.replace('{code}', otpCode);
                 await this.notificationsService.sendSms(target, message, true);
             }
         } catch (error) {

@@ -5,12 +5,14 @@ import api from '../../lib/api';
 interface NotificationSettings {
     emailEnabled: boolean;
     smsEnabled: boolean;
+    otpTemplate?: string;
 }
 
 export function NotificationTab() {
     const [settings, setSettings] = useState<NotificationSettings>({
         emailEnabled: true,
         smsEnabled: true,
+        otpTemplate: 'Makopay : a utiliser le {code}',
     });
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);

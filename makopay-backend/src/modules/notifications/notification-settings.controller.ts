@@ -13,6 +13,10 @@ class UpdateSettingsDto {
     @IsBoolean()
     @IsOptional()
     smsEnabled?: boolean;
+
+    @IsString()
+    @IsOptional()
+    otpTemplate?: string;
 }
 
 class TestEmailDto {
