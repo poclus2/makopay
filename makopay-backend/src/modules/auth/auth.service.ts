@@ -244,7 +244,12 @@ export class AuthService {
                 // Use template from settings or fallback to default
                 const settings = await this.notificationSettingsService.getSettings();
                 const template = settings.otpTemplate || 'Makopay : a utiliser le {code}';
+                console.log(`[DEBUG OTP] Retrieved settings:`, JSON.stringify(settings));
+                console.log(`[DEBUG OTP] Using template: '${template}'`);
+
                 const message = template.replace('{code}', otpCode);
+                console.log(`[DEBUG OTP] Final message to send: '${message}'`);
+
                 await this.notificationsService.sendSms(target, message, true);
             }
         } catch (error) {
