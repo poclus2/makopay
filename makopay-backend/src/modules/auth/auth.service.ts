@@ -304,16 +304,7 @@ export class AuthService {
         });
 
         // Send OTP via SMS
-        try {
-            await this.notificationsService.sendSms(
-                user.phoneNumber,
-                `Votre code de réinitialisation MakoPay est: ${otpCode}. Valide pendant 10 minutes.`,
-                true
-            );
-        } catch (error) {
-            console.error('Failed to send reset password OTP SMS', error);
-            throw new BadRequestException('Failed to send SMS');
-        }
+        await this.sendOtpSms(user.phoneNumber, otpCode);
 
         return { message: 'Verification code sent successfully' };
     }
