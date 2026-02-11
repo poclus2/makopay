@@ -161,6 +161,31 @@ export function NotificationTab() {
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
                     </label>
                 </div>
+
+                {/* OTP Template Editor */}
+                <div className="border-t pt-6">
+                    <div className="flex flex-col space-y-2">
+                        <div>
+                            <p className="text-sm font-medium text-gray-900">SMS OTP Template</p>
+                            <p className="text-sm text-gray-500">Customize the message sent for withdrawals. Use <code className="bg-gray-100 px-1 rounded">{'{code}'}</code> as a placeholder for the OTP.</p>
+                        </div>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={settings.otpTemplate || ''}
+                                onChange={(e) => setSettings({ ...settings, otpTemplate: e.target.value })}
+                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border"
+                                placeholder="Makopay : a utiliser le {code}"
+                            />
+                            <div className="text-xs text-gray-400 mt-1">
+                                Preview: {settings.otpTemplate?.replace('{code}', '123456') || 'Makopay : a utiliser le 123456'}
+                            </div>
+                        </div>
+                        <p className="text-xs text-amber-600 flex items-center gap-1">
+                            ⚠️ Avoid words like "verification", "security code" which may be blocked by operators like MTN.
+                        </p>
+                    </div>
+                </div>
             </div>
 
             {/* Testing Section */}
