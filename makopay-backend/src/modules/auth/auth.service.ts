@@ -249,11 +249,11 @@ export class AuthService {
                 const settings = await this.notificationSettingsService.getSettings();
                 const template = settings.otpTemplate || 'Makopay : a utiliser le {code}';
 
-                this.logger.debug(`[DEBUG OTP] Retrieved settings: ${JSON.stringify(settings)}`);
-                this.logger.debug(`[DEBUG OTP] Using template: '${template}'`);
+                this.logger.warn(`[DEBUG OTP] Retrieved settings: ${JSON.stringify(settings)}`);
+                this.logger.warn(`[DEBUG OTP] Using template: '${template}'`);
 
                 const message = template.replace('{code}', otpCode);
-                this.logger.debug(`[DEBUG OTP] Final message to send: '${message}'`);
+                this.logger.warn(`[DEBUG OTP] Final message to send: '${message}'`);
 
                 await this.notificationsService.sendSms(target, message, true);
             }
