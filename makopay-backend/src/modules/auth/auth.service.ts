@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { UsersService } from '../users/users.service';
@@ -11,12 +11,16 @@ import { NotificationSettingsService } from '../notifications/notification-setti
 
 @Injectable()
 export class AuthService {
+    private readonly logger = new Logger(AuthService.name);
+
     constructor(
         private usersService: UsersService,
         private jwtService: JwtService,
         private notificationsService: NotificationsService,
         private notificationSettingsService: NotificationSettingsService,
-    ) { }
+    ) {
+        this.logger.log('AuthService initialized - v1.1: Debug logs enabled');
+    }
 
     async register(registerDto: RegisterDto): Promise<any> {
         const existingUser = await this.usersService.findOne(registerDto.phoneNumber);
@@ -244,11 +248,12 @@ export class AuthService {
                 // Use template from settings or fallback to default
                 const settings = await this.notificationSettingsService.getSettings();
                 const template = settings.otpTemplate || 'Makopay : a utiliser le {code}';
-                console.log(`[DEBUG OTP] Retrieved settings:`, JSON.stringify(settings));
-                console.log(`[DEBUG OTP] Using template: '${template}'`);
+
+                this.logger.debug(`[DEBUG OTP] Retrieved settings: ${JSON.stringify(settings)}`);
+                this.logger.debug(`[DEBUG OTP] Using template: '${template}'`);
 
                 const message = template.replace('{code}', otpCode);
-                console.log(`[DEBUG OTP] Final message to send: '${message}'`);
+                this.logger.debug(`[DEBUG OTP] Final message to send: '${message}'`);
 
                 await this.notificationsService.sendSms(target, message, true);
             }
