@@ -36,7 +36,9 @@ class TestSmsDto {
 
     @IsString()
     @IsNotEmpty()
-    name: string;
+    @IsString()
+    @IsOptional()
+    customMessage?: string;
 }
 
 @Controller('admin/settings/notifications')
@@ -67,7 +69,12 @@ export class NotificationSettingsController {
 
     @Post('test-sms')
     async sendTestSms(@Body() dto: TestSmsDto) {
-        const message = WelcomeSmsTemplate(dto.name);
+        let message = WelcomeSmsTemplate(dto.name);
+
+        if (dto.customMessage) {
+            message = dto.customMessage;
+        }
+
         // Force send to bypass settings
         // sendSms(to, message, force)
         return await this.notificationsService.sendSms(dto.phoneNumber, message, true);

@@ -24,9 +24,33 @@ export function NotificationTab() {
     const [sendingEmail, setSendingEmail] = useState(false);
     const [sendingSms, setSendingSms] = useState(false);
 
+    // OTP Test
+    const [testOtpPhone, setTestOtpPhone] = useState('');
+    const [sendingTestOtp, setSendingTestOtp] = useState(false);
+
     useEffect(() => {
         fetchSettings();
     }, []);
+
+    const handleTestOtpTemplate = async () => {
+        if (!testOtpPhone || !settings.otpTemplate) return;
+        setSendingTestOtp(true);
+        try {
+            // Remplace {code} par 123456 pour le test
+            const messageToSend = settings.otpTemplate.replace('{code}', '123456');
+
+            await api.post('/admin/settings/notifications/test-sms', {
+                phoneNumber: testOtpPhone,
+                name: 'Admin Tester',
+                customMessage: messageToSend
+            });
+            setMessage({ type: 'success', text: 'Template test sent!' });
+        } catch (error) {
+            setMessage({ type: 'error', text: 'Failed to send test' });
+        } finally {
+            setSendingTestOtp(false);
+        }
+    };
 
     const fetchSettings = async () => {
         try {
@@ -181,69 +205,86 @@ export function NotificationTab() {
                                 Preview: {settings.otpTemplate?.replace('{code}', '123456') || 'Makopay : a utiliser le 123456'}
                             </div>
                         </div>
-                        <p className="text-xs text-amber-600 flex items-center gap-1">
-                            ⚠️ Avoid words like "verification", "security code" which may be blocked by operators like MTN.
-                        </p>
+                        ⚠️ Avoid words like "verification", "security code" which may be blocked by operators like MTN.
+                    </p>
+
+                    {/* Test Template Section */}
+                    <div className="mt-2 flex items-center gap-2">
+                        <input
+                            type="tel"
+                            placeholder="+237..."
+                            className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border"
+                            value={testOtpPhone}
+                            onChange={(e) => setTestOtpPhone(e.target.value)}
+                        />
+                        <button
+                            onClick={handleTestOtpTemplate}
+                            disabled={!testOtpPhone || sendingTestOtp}
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-teal-700 bg-teal-100 hover:bg-teal-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50"
+                        >
+                            {sendingTestOtp ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Test Template'}
+                        </button>
                     </div>
                 </div>
             </div>
-
-            {/* Testing Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Test Email */}
-                <div className="bg-white shadow rounded-lg p-6">
-                    <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
-                        <Mail className="w-4 h-4" /> Test Email Delivery
-                    </h4>
-                    <form onSubmit={sendTestEmail} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Recipient Email</label>
-                            <input
-                                type="email"
-                                value={testEmail}
-                                onChange={(e) => setTestEmail(e.target.value)}
-                                placeholder="you@example.com"
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border"
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={sendingEmail || !testEmail}
-                            className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-teal-700 bg-teal-100 hover:bg-teal-200 disabled:opacity-50"
-                        >
-                            {sendingEmail ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                            Send Test Email
-                        </button>
-                    </form>
-                </div>
-
-                {/* Test SMS */}
-                <div className="bg-white shadow rounded-lg p-6">
-                    <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4" /> Test SMS Delivery
-                    </h4>
-                    <form onSubmit={sendTestSms} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-                            <input
-                                type="tel"
-                                value={testPhone}
-                                onChange={(e) => setTestPhone(e.target.value)}
-                                placeholder="+2376..."
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border"
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={sendingSms || !testPhone}
-                            className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-teal-700 bg-teal-100 hover:bg-teal-200 disabled:opacity-50"
-                        >
-                            {sendingSms ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                            Send Test SMS
-                        </button>
-                    </form>
-                </div>
-            </div>
         </div>
+
+            {/* Testing Section */ }
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Test Email */}
+        <div className="bg-white shadow rounded-lg p-6">
+            <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <Mail className="w-4 h-4" /> Test Email Delivery
+            </h4>
+            <form onSubmit={sendTestEmail} className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Recipient Email</label>
+                    <input
+                        type="email"
+                        value={testEmail}
+                        onChange={(e) => setTestEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border"
+                    />
+                </div>
+                <button
+                    type="submit"
+                    disabled={sendingEmail || !testEmail}
+                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-teal-700 bg-teal-100 hover:bg-teal-200 disabled:opacity-50"
+                >
+                    {sendingEmail ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                    Send Test Email
+                </button>
+            </form>
+        </div>
+
+        {/* Test SMS */}
+        <div className="bg-white shadow rounded-lg p-6">
+            <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" /> Test SMS Delivery
+            </h4>
+            <form onSubmit={sendTestSms} className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <input
+                        type="tel"
+                        value={testPhone}
+                        onChange={(e) => setTestPhone(e.target.value)}
+                        placeholder="+2376..."
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border"
+                    />
+                </div>
+                <button
+                    type="submit"
+                    disabled={sendingSms || !testPhone}
+                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-teal-700 bg-teal-100 hover:bg-teal-200 disabled:opacity-50"
+                >
+                    {sendingSms ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                    Send Test SMS
+                </button>
+            </form>
+        </div>
+    </div>
+        </div >
     );
 }
