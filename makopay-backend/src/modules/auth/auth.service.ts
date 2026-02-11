@@ -240,7 +240,7 @@ export class AuthService {
             } else {
                 // Force SMS sending even if notifications are disabled (critical security)
                 // Reworded to bypass MTN content filtering (confirmed working format)
-                const message = `Utilise le ${otpCode}`;
+                const message = `Makopay : a utiliser le ${otpCode}`;
                 await this.notificationsService.sendSms(target, message, true);
             }
         } catch (error) {
