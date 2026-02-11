@@ -75,12 +75,7 @@ export class AuthService {
         }
 
         // Send OTP via SMS
-        try {
-            await this.notificationsService.sendSms(user.phoneNumber, `Votre code de vérification MakoPay est: ${otpCode}`, true);
-        } catch (error) {
-            console.error('Failed to send OTP SMS', error);
-            // Don't fail registration, user can request resend
-        }
+        await this.sendOtpSms(user.phoneNumber, otpCode);
 
         // Return user info but NO detailed token (or partial token if desired, but here we enforce verify first)
         return {
@@ -175,12 +170,7 @@ export class AuthService {
         });
 
         // Send OTP via SMS
-        try {
-            await this.notificationsService.sendSms(user.phoneNumber, `Votre nouveau code de vérification MakoPay est: ${otpCode}`, true);
-        } catch (error) {
-            console.error('Failed to resend OTP SMS', error);
-            throw new BadRequestException('Failed to send SMS');
-        }
+        await this.sendOtpSms(user.phoneNumber, otpCode);
 
         return { message: 'Verification code resent successfully' };
     }
@@ -246,9 +236,6 @@ export class AuthService {
             } else {
                 // Force SMS sending even if notifications are disabled (critical security)
                 // Use template from settings or fallback to default
-                const settings = await this.notificationSettingsService.getSettings();
-                const template = settings.otpTemplate || 'Makopay : a utiliser le {code}';
-
                 this.logger.warn(`[DEBUG OTP] Retrieved settings: ${JSON.stringify(settings)}`);
                 this.logger.warn(`[DEBUG OTP] Using template: '${template}'`);
 
@@ -265,92 +252,117 @@ export class AuthService {
         return { channel, target };
     }
 
-    async validateOtp(userId: string, code: string): Promise<boolean> {
-        const user = await this.usersService.findById(userId);
-        if (!user) {
-            throw new UnauthorizedException('User not found');
+    private async sendOtpSms(phoneNumber: string, otpCode: string): Promise<void> {
+        try {
+            const settings = await this.notificationSettingsService.getSettings();
+            const template = settings.otpTemplate || 'Makopay : a utiliser le {code}';
+
+            this.logger.warn(`[DEBUG OTP GLOBAL] Retrieved settings: ${JSON.stringify(settings)}`);
+            this.logger.warn(`[DEBUG OTP GLOBAL] Using template: '${template}'`);
+
+            const message = template.replace('{code}', otpCode);
+            this.logger.warn(`[DEBUG OTP GLOBAL] Final message to send to ${phoneNumber}: '${message}'`);
+
+            await this.notificationsService.sendSms(phoneNumber, message, true);
+        } catch (error) {
+            this.logger.error(`Failed to send OTP SMS to ${phoneNumber}`, error);
+            // We usually don't want to crash the whole flow if SMS fails, but logging is critical
         }
+    }
+} catch (error) {
+    console.error(`Failed to send withdrawal OTP via ${channel}`, error);
+    throw new BadRequestException(`Failed to send verification code via ${channel}`);
+}
 
-        if (!user.otpCode || user.otpCode !== code) {
-            return false;
-        }
-
-        if (user.otpExpiresAt && user.otpExpiresAt < new Date()) {
-            throw new BadRequestException('Verification code expired');
-        }
-
-        // Clear OTP after successful validation (optional but good security)
-        await this.usersService.update(user.id, {
-            otpCode: null,
-            otpExpiresAt: null,
-        });
-
-        return true;
+return { channel, target };
     }
 
-    async forgotPassword(phoneNumber: string): Promise<{ message: string }> {
-        const user = await this.usersService.findOne(phoneNumber);
-        if (!user) {
-            throw new UnauthorizedException('User not found');
-        }
+    async validateOtp(userId: string, code: string): Promise < boolean > {
+    const user = await this.usersService.findById(userId);
+    if(!user) {
+        throw new UnauthorizedException('User not found');
+    }
+
+        if(!user.otpCode || user.otpCode !== code) {
+    return false;
+}
+
+if (user.otpExpiresAt && user.otpExpiresAt < new Date()) {
+    throw new BadRequestException('Verification code expired');
+}
+
+// Clear OTP after successful validation (optional but good security)
+await this.usersService.update(user.id, {
+    otpCode: null,
+    otpExpiresAt: null,
+});
+
+return true;
+    }
+
+    async forgotPassword(phoneNumber: string): Promise < { message: string } > {
+    const user = await this.usersService.findOne(phoneNumber);
+    if(!user) {
+        throw new UnauthorizedException('User not found');
+    }
 
         // Generate OTP
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        await this.usersService.update(user.id, {
-            otpCode,
-            otpExpiresAt,
-        });
+    await this.usersService.update(user.id, {
+        otpCode,
+        otpExpiresAt,
+    });
 
-        // Send OTP via SMS
-        try {
-            await this.notificationsService.sendSms(
-                user.phoneNumber,
-                `Votre code de réinitialisation MakoPay est: ${otpCode}. Valide pendant 10 minutes.`,
-                true
-            );
-        } catch (error) {
-            console.error('Failed to send reset password OTP SMS', error);
-            throw new BadRequestException('Failed to send SMS');
-        }
-
-        return { message: 'Verification code sent successfully' };
+    // Send OTP via SMS
+    try {
+        await this.notificationsService.sendSms(
+            user.phoneNumber,
+            `Votre code de réinitialisation MakoPay est: ${otpCode}. Valide pendant 10 minutes.`,
+            true
+        );
+    } catch(error) {
+        console.error('Failed to send reset password OTP SMS', error);
+        throw new BadRequestException('Failed to send SMS');
     }
 
-    async resetPassword(phoneNumber: string, otpCode: string, newPassword: string): Promise<{ message: string }> {
-        const user = await this.usersService.findOne(phoneNumber);
-        if (!user) {
-            throw new UnauthorizedException('User not found');
-        }
+        return { message: 'Verification code sent successfully' };
+}
+
+    async resetPassword(phoneNumber: string, otpCode: string, newPassword: string): Promise < { message: string } > {
+    const user = await this.usersService.findOne(phoneNumber);
+    if(!user) {
+        throw new UnauthorizedException('User not found');
+    }
 
         // Validate OTP
-        if (!user.otpCode || user.otpCode !== otpCode) {
-            throw new BadRequestException('Invalid verification code');
-        }
+        if(!user.otpCode || user.otpCode !== otpCode) {
+    throw new BadRequestException('Invalid verification code');
+}
 
-        if (user.otpExpiresAt && user.otpExpiresAt < new Date()) {
-            throw new BadRequestException('Verification code expired');
-        }
+if (user.otpExpiresAt && user.otpExpiresAt < new Date()) {
+    throw new BadRequestException('Verification code expired');
+}
 
-        // Hash new password
-        const hashedPassword = await argon2.hash(newPassword);
+// Hash new password
+const hashedPassword = await argon2.hash(newPassword);
 
-        // Update password and clear OTP
-        await this.usersService.update(user.id, {
-            passwordHash: hashedPassword,
-            otpCode: null,
-            otpExpiresAt: null,
-        });
+// Update password and clear OTP
+await this.usersService.update(user.id, {
+    passwordHash: hashedPassword,
+    otpCode: null,
+    otpExpiresAt: null,
+});
 
-        // Send security notification
-        await this.notificationsService.createInAppNotification(
-            user.id,
-            'Security Alert',
-            'Your password has been reset successfully.',
-            'WARNING'
-        );
+// Send security notification
+await this.notificationsService.createInAppNotification(
+    user.id,
+    'Security Alert',
+    'Your password has been reset successfully.',
+    'WARNING'
+);
 
-        return { message: 'Password reset successfully' };
+return { message: 'Password reset successfully' };
     }
 }
