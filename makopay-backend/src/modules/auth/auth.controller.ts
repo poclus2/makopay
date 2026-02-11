@@ -59,4 +59,12 @@ export class AuthController {
     async resetPassword(@Body() dto: ResetPasswordDto) {
         return this.authService.resetPassword(dto.phoneNumber, dto.otpCode, dto.newPassword);
     }
+
+    @Get('version')
+    getVersion() {
+        return {
+            version: '1.2.0-debug-otp',
+            timestamp: new Date().toISOString()
+        };
+    }
 }
