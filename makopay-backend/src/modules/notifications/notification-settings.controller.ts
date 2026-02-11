@@ -36,6 +36,8 @@ class TestSmsDto {
 
     @IsString()
     @IsNotEmpty()
+    name: string;
+
     @IsString()
     @IsOptional()
     customMessage?: string;
