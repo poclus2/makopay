@@ -49,4 +49,14 @@ export class AdminController {
     async rejectWithdrawal(@Param('id') id: string) {
         return this.adminService.rejectWithdrawal(id);
     }
+
+    @Get('deposits/history')
+    async getDepositHistory() {
+        return this.adminService.getDepositHistory();
+    }
+
+    @Post('deposits/manual')
+    async manualDeposit(@Body() body: { userId: string, amount: number, currency: string, message: string }) {
+        return this.adminService.manualDeposit(body.userId, body.amount, body.currency || 'XAF', body.message);
+    }
 }
