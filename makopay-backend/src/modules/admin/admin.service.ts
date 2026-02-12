@@ -165,40 +165,57 @@ export class AdminService {
         });
     }
 
-    async manualDeposit(userId: string, amount: number, currency: string, message: string) {
-        // Find User
-        const user = await this.usersService.findById(userId);
-        if (!user) {
-            throw new Error('User not found');
-        }
+    async manualDeposit(userIds: string[], amount: number, currency: string, message: string) {
+        const results = {
+            success: [] as string[],
+            failed: [] as string[]
+        };
 
-        // Convert to EUR (Base Currency)
+        // Convert to EUR (Base Currency) once
         const conversionRate = currency === 'XAF' || currency === 'XOF' ? 655.957 : 1;
         const amountInEUR = amount / conversionRate;
+        const amountDecimal = new (await import('@prisma/client')).Prisma.Decimal(amountInEUR);
+        const originalAmountDecimal = new (await import('@prisma/client')).Prisma.Decimal(amount);
+        const refPrefix = `ADM-${Date.now()}`;
 
-        // Credit Wallet
-        await this.walletService.credit(
-            user.id,
-            new (await import('@prisma/client')).Prisma.Decimal(amountInEUR),
-            'DEPOSIT', // Treated as Deposit
-            'ADMIN',   // Source Admin
-            message || 'Recharge Manuelle Admin'
-        );
+        for (const userId of userIds) {
+            try {
+                // Find User
+                const user = await this.usersService.findById(userId);
+                if (!user) {
+                    results.failed.push(`User ${userId} not found`);
+                    continue;
+                }
 
-        // TODO: Create a DepositRequest record for tracking? 
-        // Or just Log it. Creating a completed DepositRequest is better for history tab.
-        await this.prisma.depositRequest.create({
-            data: {
-                userId: user.id,
-                amount: new (await import('@prisma/client')).Prisma.Decimal(amount), // Original amount
-                currency: currency,
-                method: 'MANUAL_ADMIN',
-                payerPhoneNumber: 'ADMIN',
-                referenceCode: `ADM-${Date.now()}`,
-                status: 'COMPLETED'
+                // Credit Wallet
+                await this.walletService.credit(
+                    user.id,
+                    amountDecimal,
+                    'DEPOSIT', // Treated as Deposit
+                    'ADMIN',   // Source Admin
+                    message || 'Recharge Manuelle Admin'
+                );
+
+                // Create Completed DepositRequest record for tracking
+                await this.prisma.depositRequest.create({
+                    data: {
+                        userId: user.id,
+                        amount: originalAmountDecimal,
+                        currency: currency,
+                        method: 'MANUAL_ADMIN',
+                        payerPhoneNumber: 'ADMIN',
+                        referenceCode: `${refPrefix}-${user.phoneNumber?.slice(-4) || 'UNK'}`, // Unique ref per user
+                        status: 'COMPLETED'
+                    }
+                });
+
+                results.success.push(user.id);
+            } catch (error) {
+                console.error(`Failed manual deposit for ${userId}`, error);
+                results.failed.push(userId);
             }
-        });
+        }
 
-        return { success: true };
+        return results;
     }
 }

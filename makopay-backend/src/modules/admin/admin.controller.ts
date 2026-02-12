@@ -56,7 +56,7 @@ export class AdminController {
     }
 
     @Post('deposits/manual')
-    async manualDeposit(@Body() body: { userId: string, amount: number, currency: string, message: string }) {
-        return this.adminService.manualDeposit(body.userId, body.amount, body.currency || 'XAF', body.message);
+    async manualDeposit(@Body() body: { userIds: string[], amount: number, currency: string, message: string }) {
+        return this.adminService.manualDeposit(body.userIds, body.amount, body.currency || 'XAF', body.message);
     }
 }
