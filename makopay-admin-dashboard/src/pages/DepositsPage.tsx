@@ -38,7 +38,7 @@ export default function DepositsPage() {
     const [processingId, setProcessingId] = useState<string | null>(null)
 
     // Manual Deposit State
-    const [selectedUser, setSelectedUser] = useState<string>('')
+    const [selectedUsers, setSelectedUsers] = useState<string[]>([])
     const [manualAmount, setManualAmount] = useState<string>('')
     const [manualMessage, setManualMessage] = useState<string>('')
     const [userSearch, setUserSearch] = useState('')
@@ -85,17 +85,18 @@ export default function DepositsPage() {
     })
 
     const manualDepositMutation = useMutation({
-        mutationFn: async (data: { userId: string, amount: number, message: string }) => {
+        mutationFn: async (data: { userIds: string[], amount: number, message: string }) => {
             return api.post('/admin/deposits/manual', { ...data, currency: 'XAF' })
         },
-        onSuccess: () => {
-            alert('Recharge effectuée avec succès!')
-            setSelectedUser('')
+        onSuccess: (data: any) => {
+            const result = data.data;
+            alert(`Recharge terminée. Succès: ${result.success.length}, Echecs: ${result.failed.length}`)
+            setSelectedUsers([])
             setManualAmount('')
             setManualMessage('')
             queryClient.invalidateQueries({ queryKey: ['depositHistory'] })
         },
-        onError: () => alert('Erreur lors de la recharge')
+        onError: () => alert('Erreur critique lors de la recharge')
     })
 
     // Handlers
@@ -115,10 +116,10 @@ export default function DepositsPage() {
 
     const handleManualSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        if (!selectedUser || !manualAmount) return
-        if (confirm(`Recharger ${manualAmount} XAF pour cet utilisateur ?`)) {
+        if (selectedUsers.length === 0 || !manualAmount) return
+        if (confirm(`Recharger ${manualAmount} XAF pour ${selectedUsers.length} utilisateur(s) ?`)) {
             manualDepositMutation.mutate({
-                userId: selectedUser,
+                userIds: selectedUsers,
                 amount: parseFloat(manualAmount),
                 message: manualMessage
             })
@@ -133,6 +134,22 @@ export default function DepositsPage() {
         u.email?.toLowerCase().includes(userSearch.toLowerCase())
     ) || []
 
+    const handleToggleUser = (userId: string) => {
+        setSelectedUsers(prev =>
+            prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+        )
+    }
+
+    const handleSelectAll = () => {
+        if (selectedUsers.length === filteredUsers.length && filteredUsers.length > 0) {
+            setSelectedUsers([]) // Deselect all if all filtered are selected
+        } else {
+            setSelectedUsers(filteredUsers.map(u => u.id))
+        }
+    }
+
+    // ... (UI Rendering)
+
     return (
         <div className="p-8">
             <div className="flex items-center justify-between mb-6">
@@ -144,8 +161,8 @@ export default function DepositsPage() {
                 <button
                     onClick={() => setActiveTab('pending')}
                     className={`pb-2 px-4 font-medium flex items-center gap-2 ${activeTab === 'pending'
-                            ? 'text-teal-600 border-b-2 border-teal-600'
-                            : 'text-gray-500 hover:text-gray-700'
+                        ? 'text-teal-600 border-b-2 border-teal-600'
+                        : 'text-gray-500 hover:text-gray-700'
                         }`}
                 >
                     <Clock size={18} />
@@ -159,8 +176,8 @@ export default function DepositsPage() {
                 <button
                     onClick={() => setActiveTab('history')}
                     className={`pb-2 px-4 font-medium flex items-center gap-2 ${activeTab === 'history'
-                            ? 'text-teal-600 border-b-2 border-teal-600'
-                            : 'text-gray-500 hover:text-gray-700'
+                        ? 'text-teal-600 border-b-2 border-teal-600'
+                        : 'text-gray-500 hover:text-gray-700'
                         }`}
                 >
                     <History size={18} />
@@ -169,8 +186,8 @@ export default function DepositsPage() {
                 <button
                     onClick={() => setActiveTab('manual')}
                     className={`pb-2 px-4 font-medium flex items-center gap-2 ${activeTab === 'manual'
-                            ? 'text-teal-600 border-b-2 border-teal-600'
-                            : 'text-gray-500 hover:text-gray-700'
+                        ? 'text-teal-600 border-b-2 border-teal-600'
+                        : 'text-gray-500 hover:text-gray-700'
                         }`}
                 >
                     <CreditCard size={18} />
@@ -266,7 +283,7 @@ export default function DepositsPage() {
                                             <td className="px-6 py-4 text-sm text-gray-600">{deposit.method}</td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${deposit.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                                                        deposit.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+                                                    deposit.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
                                                     }`}>
                                                     {deposit.status}
                                                 </span>
@@ -293,16 +310,27 @@ export default function DepositsPage() {
                         <form onSubmit={handleManualSubmit} className="space-y-6">
                             {/* User Selection */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Rechercher un Utilisateur</label>
-                                <div className="relative mb-2">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                    <input
-                                        type="text"
-                                        placeholder="Nom, Email ou Téléphone..."
-                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
-                                        value={userSearch}
-                                        onChange={(e) => setUserSearch(e.target.value)}
-                                    />
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Rechercher des Utilisateurs ({selectedUsers.length} sélectionné{selectedUsers.length > 1 ? 's' : ''})
+                                </label>
+                                <div className="flex gap-2 mb-2">
+                                    <div className="relative flex-1">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                        <input
+                                            type="text"
+                                            placeholder="Nom, Email ou Téléphone..."
+                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
+                                            value={userSearch}
+                                            onChange={(e) => setUserSearch(e.target.value)}
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleSelectAll}
+                                        className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                                    >
+                                        Tout Cocher
+                                    </button>
                                 </div>
                                 <div className="border border-gray-200 rounded-md max-h-60 overflow-y-auto">
                                     {!users ? (
@@ -313,19 +341,30 @@ export default function DepositsPage() {
                                         filteredUsers.map(u => (
                                             <div
                                                 key={u.id}
-                                                onClick={() => setSelectedUser(u.id)}
-                                                className={`p-3 cursor-pointer hover:bg-teal-50 flex justify-between items-center ${selectedUser === u.id ? 'bg-teal-50 border-l-4 border-teal-500' : ''}`}
+                                                onClick={() => handleToggleUser(u.id)}
+                                                className={`p-3 cursor-pointer hover:bg-teal-50 flex justify-between items-center border-b last:border-0 ${selectedUsers.includes(u.id) ? 'bg-teal-50' : ''}`}
                                             >
-                                                <div>
-                                                    <p className="font-medium text-gray-800">{u.firstName} {u.lastName}</p>
-                                                    <p className="text-xs text-gray-500">{u.phoneNumber} • {u.email}</p>
+                                                <div className="flex items-center gap-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedUsers.includes(u.id)}
+                                                        readOnly
+                                                        className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
+                                                    />
+                                                    <div>
+                                                        <p className="font-medium text-gray-800">{u.firstName} {u.lastName}</p>
+                                                        <p className="text-xs text-gray-500">{u.phoneNumber} • {u.email}</p>
+                                                    </div>
                                                 </div>
-                                                {selectedUser === u.id && <CheckCircle className="w-5 h-5 text-teal-600" />}
+                                                {u.wallet && (
+                                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                                        {parseFloat(u.wallet.balance).toFixed(2)} €
+                                                    </span>
+                                                )}
                                             </div>
                                         ))
                                     )}
                                 </div>
-                                {selectedUser && <p className="text-xs text-teal-600 mt-1 font-medium">Utilisateur sélectionné ID: {selectedUser}</p>}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -356,10 +395,10 @@ export default function DepositsPage() {
                             <div className="pt-4">
                                 <button
                                     type="submit"
-                                    disabled={!selectedUser || !manualAmount || manualDepositMutation.isPending}
+                                    disabled={selectedUsers.length === 0 || !manualAmount || manualDepositMutation.isPending}
                                     className="w-full bg-teal-600 text-white py-3 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 font-medium transition-colors flex justify-center items-center gap-2"
                                 >
-                                    {manualDepositMutation.isPending ? 'Traitement...' : 'Valider la Recharge'}
+                                    {manualDepositMutation.isPending ? 'Traitement...' : `Valider la Recharge (${selectedUsers.length} user${selectedUsers.length > 1 ? 's' : ''})`}
                                 </button>
                             </div>
                         </form>
