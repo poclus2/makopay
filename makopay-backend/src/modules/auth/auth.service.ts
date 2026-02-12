@@ -1,13 +1,14 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { User } from '@prisma/client';
+import { User, Prisma, WalletTransactionType, LedgerSource } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationSettingsService } from '../notifications/notification-settings.service';
+import { WalletService } from '../wallet/wallet.service';
 
 @Injectable()
 export class AuthService {
@@ -18,8 +19,10 @@ export class AuthService {
         private jwtService: JwtService,
         private notificationsService: NotificationsService,
         private notificationSettingsService: NotificationSettingsService,
+        @Inject(forwardRef(() => WalletService))
+        private walletService: WalletService,
     ) {
-        this.logger.log('AuthService initialized - v1.1: Debug logs enabled');
+        this.logger.log('AuthService initialized - v1.3: Signup Bonus enabled');
     }
 
     async register(registerDto: RegisterDto): Promise<any> {
@@ -119,6 +122,34 @@ export class AuthService {
             otpCode: null,
             otpExpiresAt: null,
         });
+
+        // Credit Signup Bonus (1000 XAF)
+        try {
+            const bonusAmountXaf = 1000;
+            const rateXof = 655.957; // EUR to XAF rate
+            const bonusAmountEur = new Prisma.Decimal(bonusAmountXaf / rateXof);
+
+            await this.walletService.credit(
+                user.id,
+                bonusAmountEur,
+                WalletTransactionType.DEPOSIT, // Treated as a deposit
+                LedgerSource.ADMIN, // Source: System/Admin
+                'Bonus de Bienvenue (Inscription)',
+            );
+
+            this.logger.log(`Credited signup bonus of 1000 XAF to user ${user.id}`);
+
+            // Notify user about bonus
+            await this.notificationsService.createInAppNotification(
+                user.id,
+                'Bonus Reçu !',
+                'Félicitations ! Vous avez reçu un bonus de 1000 FCFA pour votre inscription.',
+                'SUCCESS'
+            );
+        } catch (error) {
+            this.logger.error(`Failed to credit signup bonus for user ${user.id}`, error);
+            // Don't fail login if bonus fails
+        }
 
         const updatedUser = await this.usersService.findById(user.id);
         return this.login(updatedUser);
