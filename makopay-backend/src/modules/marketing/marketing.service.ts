@@ -364,10 +364,12 @@ export class MarketingService {
         if (filters.registeredAfter || filters.registeredBefore) {
             where.createdAt = {};
             if (filters.registeredAfter) {
-                where.createdAt.gte = filters.registeredAfter;
+                // Ensure proper Date object
+                where.createdAt.gte = new Date(filters.registeredAfter);
             }
             if (filters.registeredBefore) {
-                where.createdAt.lte = filters.registeredBefore;
+                // Ensure proper Date object
+                where.createdAt.lte = new Date(filters.registeredBefore);
             }
         }
 
